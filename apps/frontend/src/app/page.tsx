@@ -1,4 +1,6 @@
-import Link from 'next/link';
+'use client';
+
+import { useRouter } from 'next/navigation';
 
 const PACKAGES = [
   {
@@ -29,6 +31,13 @@ const PACKAGES = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  function handleGetStarted(packageKey: string) {
+    localStorage.setItem('zenthorax-package', packageKey);
+    router.push('/login');
+  }
+
   return (
     <main className="min-h-screen">
       {/* Hero */}
@@ -116,8 +125,8 @@ export default function LandingPage() {
                   First payment: NRS {pkg.firstPayment}
                 </p>
                 <p className="mt-4 text-sm text-muted-foreground">{pkg.description}</p>
-                <Link
-                  href="/login"
+                <button
+                  onClick={() => handleGetStarted(pkg.name.toLowerCase().replace(' ', '-'))}
                   className={`mt-6 block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-colors ${
                     pkg.popular
                       ? 'bg-brand-500 text-white hover:bg-brand-600'
@@ -125,7 +134,7 @@ export default function LandingPage() {
                   }`}
                 >
                   Get Started
-                </Link>
+                </button>
               </div>
             ))}
           </div>

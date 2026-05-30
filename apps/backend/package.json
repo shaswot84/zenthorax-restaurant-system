@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "main": "dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -26,6 +28,7 @@
     "@zenthorax/database": "workspace:*",
     "@zenthorax/shared": "workspace:*",
     "bullmq": "^5.34.0",
+    "drizzle-orm": "^0.38.0",
     "fastify": "^5.2.0",
     "ioredis": "^5.4.1",
     "pino": "^9.6.0",
