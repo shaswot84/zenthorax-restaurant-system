@@ -1,10 +1,6 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "../../.eslintrc.json"
-  ],
+  "extends": "next/core-web-vitals",
   "rules": {
-    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "no-console": "off"
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }]
   }
 }
