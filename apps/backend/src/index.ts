@@ -28,17 +28,30 @@ async function bootstrap() {
 
   // --- Redis (optional) ---
   let redis: Redis | undefined;
+  let redisAvailable = false;
   if (env.REDIS_URL) {
     redis = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 1,
+      lazyConnect: true,
       retryStrategy(times) {
-        if (times > 5) return null;
-        return Math.min(times * 200, 2000);
+        if (times > 3) return null;
+        return Math.min(times * 500, 2000);
       },
+      tls: env.REDIS_URL.startsWith('rediss://') ? undefined : {}, // Enable TLS for Upstash
     });
     redis.on('error', (err: Error) => {
       console.warn('Redis connection error (non-fatal):', err.message);
+      redisAvailable = false;
     });
+    redis.on('connect', () => {
+      redisAvailable = true;
+    });
+    try {
+      await redis.connect();
+    } catch (err) {
+      console.warn('Redis unavailable, continuing without cache:', (err as Error).message);
+      redis = undefined;
+    }
   }
 
   // --- Fastify Server ---
@@ -73,7 +86,7 @@ async function bootstrap() {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
-    redis: redis ?? undefined,
+    redis: redisAvailable ? redis : undefined,
     keyGenerator: (req) => {
       return req.ip;
     },
