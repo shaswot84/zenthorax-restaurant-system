@@ -3,6 +3,7 @@ import { Providers } from '@/lib/providers';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
+  icons: { icon: '/favicon.svg' },
   title: {
     default: 'Zenthorax — QR Menu & Ordering for Restaurants',
     template: '%s | Zenthorax',
