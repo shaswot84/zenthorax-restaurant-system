@@ -81,9 +81,14 @@ export async function restaurantRoutes(app: FastifyInstance, di: RestaurantDI) {
       });
     }
 
-    // Validate package type
-    const pkgKey = packageType.toUpperCase().replace('-', '_') as keyof typeof SUBSCRIPTION_PACKAGES;
-    const pkg = SUBSCRIPTION_PACKAGES[pkgKey];
+    // Validate package type — map frontend keys to subscription constants
+    const PACKAGE_MAP: Record<string, keyof typeof SUBSCRIPTION_PACKAGES> = {
+      'monthly': 'MONTHLY',
+      '3-month': 'THREE_MONTH',
+      '6-month': 'SIX_MONTH',
+    };
+    const pkgKey = PACKAGE_MAP[packageType];
+    const pkg = pkgKey ? SUBSCRIPTION_PACKAGES[pkgKey] : undefined;
     if (!pkg) {
       return reply.status(400).send({
         success: false,

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Env } from '../config/env';
 import type { Database } from '@zenthorax/database';
+import { users } from '@zenthorax/database/schema';
 import { createAuthMiddleware } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
 
@@ -91,7 +92,7 @@ export async function authRoutes(app: FastifyInstance, di: AuthDI) {
 
     // Create user record (fallback if trigger didn't fire)
     await db
-      .insert((await import('@zenthorax/database/schema')).users)
+      .insert(users)
       .values({
         id: supabaseUser.id,
         email: supabaseUser.email,
