@@ -1,4 +1,7 @@
-import 'dotenv/config';
+// Node 22+ built-in .env loader — no dependency needed.
+// In production (Fly.io), env vars are injected directly; this is a no-op.
+try { process.loadEnvFile(); } catch { /* .env file is optional */ }
+
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
