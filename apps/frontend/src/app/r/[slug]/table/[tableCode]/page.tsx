@@ -2,7 +2,6 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useSessionStore } from '@/stores';
 
 export default function QRMenuPage() {

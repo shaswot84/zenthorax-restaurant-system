@@ -8,12 +8,6 @@ const PUBLIC_PATHS = [
   '/r/', // QR menu routes
 ];
 
-const ROLE_ROUTES: Record<string, string> = {
-  restaurant_manager: '/dashboard',
-  kitchen_staff: '/kitchen',
-  super_admin: '/admin',
-};
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
