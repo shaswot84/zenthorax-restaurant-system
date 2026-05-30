@@ -1,11 +1,11 @@
 # Fly.io configuration for Zenthorax Backend
-# Docs: https://fly.io/docs/reference/configuration/
+# Deploy from repo root: flyctl deploy
 
 app = "zenthorax-api"
 primary_region = "bom"
 
 [build]
-  dockerfile = "../../docker/Dockerfile.backend"
+  dockerfile = "docker/Dockerfile.backend"
 
 [http_service]
   internal_port = 8080
@@ -30,11 +30,10 @@ primary_region = "bom"
   NODE_ENV = "production"
   LOG_LEVEL = "info"
 
-# Secrets to set via `flyctl secrets set`:
-# DATABASE_URL
-# SUPABASE_URL
-# SUPABASE_SERVICE_ROLE_KEY
-# SUPABASE_ANON_KEY
-# SUPABASE_JWT_SECRET
-# REDIS_URL
-# SENTRY_DSN
+# Secrets are set via: flyctl secrets set KEY=VALUE -a zenthorax-api
+#   DATABASE_URL
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   SUPABASE_ANON_KEY
+#   SUPABASE_JWT_SECRET
+#   REDIS_URL
