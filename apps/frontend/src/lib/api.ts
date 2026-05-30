@@ -37,7 +37,7 @@ export async function apiPost<T>(
     method: 'POST',
     headers,
     credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(body ?? {}),
   });
   return res.json();
 }
@@ -51,7 +51,7 @@ export async function apiPatch<T>(
     method: 'PATCH',
     headers,
     credentials: 'include',
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(body ?? {}),
   });
   return res.json();
 }
