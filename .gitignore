@@ -1,0 +1,46 @@
+# ── Dependencies ──────────────────────────────────────────
+node_modules/
+.pnpm-store/
+
+# ── Build outputs ─────────────────────────────────────────
+dist/
+.next/
+.turbo/
+
+# ── Environment files (keep templates only) ───────────────
+.env
+.env.*
+*.env
+*.env.local
+!.env.example
+!.env.local.example
+
+# ── IDE ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Supabase local ────────────────────────────────────────
+supabase/.branches/
+supabase/.temp/
+
+# ── Docker ────────────────────────────────────────────────
+docker/.data/
+
+# ── Debug ─────────────────────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ── Testing ───────────────────────────────────────────────
+coverage/
+test-results/
+playwright-report/
+
+# ── Misc ──────────────────────────────────────────────────
+*.tsbuildinfo

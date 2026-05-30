@@ -1,0 +1,35 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - 'packages/shared/**'
+      - 'packages/config/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - 'packages/shared/**'
+      - 'packages/config/**'
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @zenthorax/frontend lint
+      - run: pnpm --filter @zenthorax/frontend type-check
+
+  # Deploy to Vercel is handled automatically by Vercel's GitHub integration.
+  # Configure in Vercel Dashboard: https://vercel.com
