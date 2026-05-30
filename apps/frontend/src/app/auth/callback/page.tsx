@@ -32,7 +32,22 @@ export default function AuthCallbackPage() {
 
       if (profileRes.success && profileRes.data) {
         const { role, restaurant } = profileRes.data;
+        const isAdminLogin = localStorage.getItem('zenthorax-admin-login') === '1';
+        localStorage.removeItem('zenthorax-admin-login');
 
+        // Admin login: only allow super_admin role
+        if (isAdminLogin && role !== 'super_admin') {
+          setError('This account does not have super admin privileges. Please use the restaurant login instead.');
+          return;
+        }
+
+        // Admin login succeeded
+        if (isAdminLogin && role === 'super_admin') {
+          router.push('/admin');
+          return;
+        }
+
+        // Regular login: super admin can use either
         switch (role) {
           case 'super_admin':
             router.push('/admin');
