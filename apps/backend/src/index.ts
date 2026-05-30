@@ -118,7 +118,7 @@ async function bootstrap() {
 
   // --- Routes ---
   await app.register((instance) => healthRoutes(instance, env, di));
-  await app.register((instance) => authRoutes(instance, env));
+  await app.register((instance) => authRoutes(instance, di));
   await app.register((instance) => restaurantRoutes(instance, env));
   await app.register((instance) => menuRoutes(instance, env));
   await app.register((instance) => tableRoutes(instance, env));
