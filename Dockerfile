@@ -48,4 +48,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["tsx", "dist/index.js"]
+CMD ["sh", "-c", "exec node ./node_modules/tsx/dist/cli.mjs dist/index.js"]
