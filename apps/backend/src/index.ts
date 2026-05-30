@@ -124,7 +124,7 @@ async function bootstrap() {
   await app.register((instance) => tableRoutes(instance, env));
   await app.register((instance) => orderRoutes(instance, env));
   await app.register((instance) => billRoutes(instance, env));
-  await app.register((instance) => adminRoutes(instance, env));
+  await app.register((instance) => adminRoutes(instance, di));
 
   // --- Global Error Handler ---
   app.setErrorHandler((error: { statusCode?: number; code?: string; message?: string }, _request, reply) => {
