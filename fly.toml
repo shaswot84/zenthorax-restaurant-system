@@ -2,7 +2,7 @@
 # Deploy from repo root: flyctl deploy
 
 app = "zenthorax-api"
-primary_region = "bom"
+primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
