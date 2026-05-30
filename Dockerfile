@@ -1,5 +1,6 @@
 # Multi-stage Docker build for Zenthorax Backend
 # Deployed on Fly.io
+# Uses pnpm deploy to create a standalone, flattened deployment
 
 # ---- Stage 1: Build ----
 FROM node:22-alpine AS builder
@@ -8,18 +9,27 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 WORKDIR /app
 
-# Copy workspace config
+# Copy workspace config and all source packages
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
 COPY packages/config ./packages/config
 COPY packages/shared ./packages/shared
 COPY packages/database ./packages/database
 COPY apps/backend ./apps/backend
 
-# Install dependencies and build
+# Install all dependencies (including devDependencies for build)
 RUN pnpm install --frozen-lockfile
+
+# Build the backend (TypeScript → dist/)
 RUN pnpm --filter @zenthorax/backend build
 
-# ---- Stage 2: Production ----
+# ---- Stage 2: Deploy (standalone, flattened) ----
+FROM builder AS deployer
+
+# pnpm deploy creates a self-contained directory with only production deps,
+# flattened node_modules, and the built source — no pnpm symlinks.
+RUN pnpm --filter @zenthorax/backend deploy /deploy
+
+# ---- Stage 3: Production Runner ----
 FROM node:22-alpine AS runner
 
 RUN addgroup --system --gid 1001 nodejs && \
@@ -27,11 +37,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 WORKDIR /app
 
-# Copy built artifacts and production deps
-COPY --from=builder --chown=zenthorax:nodejs /app/apps/backend/dist ./dist
-COPY --from=builder --chown=zenthorax:nodejs /app/apps/backend/package.json ./
-COPY --from=builder --chown=zenthorax:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=zenthorax:nodejs /app/packages ./packages
+# Copy the standalone deployment
+COPY --from=deployer --chown=zenthorax:nodejs /deploy .
 
 USER zenthorax
 
