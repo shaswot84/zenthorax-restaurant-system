@@ -117,7 +117,7 @@ export default function LandingPage() {
                 </p>
                 <p className="mt-4 text-sm text-muted-foreground">{pkg.description}</p>
                 <Link
-                  href={`/signup?package=${pkg.name.toLowerCase().replace(' ', '-')}`}
+                  href="/login"
                   className={`mt-6 block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-colors ${
                     pkg.popular
                       ? 'bg-brand-500 text-white hover:bg-brand-600'
