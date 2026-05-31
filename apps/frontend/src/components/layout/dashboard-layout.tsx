@@ -54,7 +54,7 @@ export function DashboardLayout({
 
   function handleSignOut() {
     signOut();
-    router.push('/');
+    window.location.href = '/';
   }
 
   // Group items by section
