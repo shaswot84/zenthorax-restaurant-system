@@ -16,7 +16,7 @@ function getSupabaseClient() {
 
   clientInstance = createClient(url, key, {
     auth: {
-      persistSession: true,
+      persistSession: false,
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
