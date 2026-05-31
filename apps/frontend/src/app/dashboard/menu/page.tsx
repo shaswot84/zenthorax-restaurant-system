@@ -30,6 +30,9 @@ export default function MenuPage() {
   const [itemPrice, setItemPrice] = useState('');
   const [itemCatId, setItemCatId] = useState('');
   const [itemAvailable, setItemAvailable] = useState(true);
+  const [itemImage, setItemImage] = useState<File | null>(null);
+  const [itemImagePreview, setItemImagePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     const r = await apiGet<any>('/api/restaurants/mine');
@@ -69,21 +72,44 @@ export default function MenuPage() {
     setItemName(''); setItemDesc(''); setItemPrice('');
     setItemCatId(catId || (categories[0]?.id ?? ''));
     setItemAvailable(true);
+    setItemImage(null); setItemImagePreview(null);
     setShowItemForm(true);
   }
   function openEditItem(item: MenuItem) {
     setEditingItem(item);
     setItemName(item.name); setItemDesc(item.description ?? ''); setItemPrice(String(item.price));
     setItemCatId(item.categoryId); setItemAvailable(item.isAvailable);
+    setItemImage(null); setItemImagePreview(item.imageUrl);
     setShowItemForm(true);
   }
   async function saveItem() {
     if (!restaurant || !itemCatId || !itemName.trim() || !itemPrice) return;
-    const body = {
+    setUploading(true);
+
+    let imageUrl = editingItem?.imageUrl ?? null;
+    if (itemImage) {
+      const { supabase } = await import('@/lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) {
+        const formData = new FormData();
+        formData.append('file', itemImage);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/upload/menu-image`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const json = await res.json();
+        if (json.success) imageUrl = json.data.imageUrl;
+      }
+    }
+
+    const body: any = {
       categoryId: itemCatId,
       name: itemName.trim(),
       description: itemDesc.trim() || null,
       price: parseFloat(itemPrice),
+      imageUrl,
     };
     if (editingItem) {
       await apiPatch(`/api/restaurants/${restaurant.id}/menu-items/${editingItem.id}`, body);
@@ -216,6 +242,20 @@ export default function MenuPage() {
                 <textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)}
                   className="mt-1 w-full rounded-lg border px-3 py-2 text-sm" rows={2} placeholder="Optional description" />
               </div>
+              <div>
+                <label className="block text-xs font-medium">Image</label>
+                <div className="mt-1 flex items-center gap-3">
+                  {(itemImagePreview || editingItem?.imageUrl) && (
+                    <img src={itemImagePreview ?? editingItem?.imageUrl ?? ''} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+                  )}
+                  <label className="cursor-pointer rounded-lg border-2 border-dashed px-3 py-2 text-xs text-muted-foreground hover:border-brand-400">
+                    {itemImage ? itemImage.name : 'Choose file'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => {
+                      const f = e.target.files?.[0]; if (f) { setItemImage(f); setItemImagePreview(URL.createObjectURL(f)); }
+                    }} className="hidden" />
+                  </label>
+                </div>
+              </div>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={itemAvailable} onChange={e => setItemAvailable(e.target.checked)} className="accent-brand-500" />
                 In stock
@@ -223,7 +263,9 @@ export default function MenuPage() {
             </div>
             <div className="mt-4 flex gap-2 justify-end">
               <button onClick={() => setShowItemForm(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button>
-              <button onClick={saveItem} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">Save</button>
+              <button onClick={saveItem} disabled={uploading} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
+                {uploading ? 'Uploading...' : 'Save'}
+              </button>
             </div>
           </div>
         </div>

@@ -109,7 +109,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
-    const { categoryId, name, description, price, nutritionInfo } = req.body as any;
+    const { categoryId, name, description, price, nutritionInfo, imageUrl } = req.body as any;
     if (!categoryId || !name?.trim() || price === undefined) {
       return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'categoryId, name, and price are required.' } });
     }
@@ -124,6 +124,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
       name: name.trim(),
       description: description ?? null,
       price,
+      imageUrl: imageUrl ?? null,
       isAvailable: true,
       nutritionInfo: nutritionInfo ?? null,
     };
@@ -141,7 +142,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     }
     const body = req.body as any;
     const updates: Record<string, any> = {};
-    const allowed = ['name', 'description', 'price', 'categoryId', 'nutritionInfo'];
+    const allowed = ['name', 'description', 'price', 'categoryId', 'nutritionInfo', 'imageUrl'];
     for (const f of allowed) if (body[f] !== undefined) updates[f] = body[f];
     if (Object.keys(updates).length === 0) {
       return reply.status(400).send({ success: false, error: { code: 'NO_CHANGES' } });

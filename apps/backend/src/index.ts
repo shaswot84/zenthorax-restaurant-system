@@ -5,6 +5,7 @@ try { process.loadEnvFile(); } catch { /* .env file is optional */ }
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -18,6 +19,7 @@ import { menuRoutes } from './routes/menu';
 import { tableRoutes } from './routes/tables';
 import { orderRoutes } from './routes/orders';
 import { billRoutes } from './routes/bills';
+import { uploadRoutes } from './routes/upload';
 import { adminRoutes } from './routes/admin';
 
 async function bootstrap() {
@@ -83,6 +85,10 @@ async function bootstrap() {
     contentSecurityPolicy: false,
   });
 
+  await app.register(multipart, {
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  });
+
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
@@ -117,6 +123,7 @@ async function bootstrap() {
   }
 
   // --- Routes ---
+  await app.register((instance) => uploadRoutes(instance, di));
   await app.register((instance) => healthRoutes(instance, env, di));
   await app.register((instance) => authRoutes(instance, di));
   await app.register((instance) => restaurantRoutes(instance, di));
