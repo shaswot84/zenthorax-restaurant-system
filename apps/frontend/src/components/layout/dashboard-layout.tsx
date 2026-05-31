@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-provider';
@@ -46,9 +46,17 @@ export function DashboardLayout({
   variant?: 'restaurant' | 'kitchen' | 'admin';
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, role } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Super admin passkey check (skip on verify and security pages)
+  useEffect(() => {
+    if (variant !== 'admin' || !user || role !== 'super_admin') return;
+    if (pathname === '/admin/verify' || pathname === '/admin/security' || pathname === '/admin/login') return;
+    const verified = sessionStorage.getItem('zenthorax-passkey-verified');
+    if (verified !== '1') router.push('/admin/verify');
+  }, [variant, user, role, pathname]);
 
   const navItems =
     variant === 'kitchen' ? KITCHEN_NAV : variant === 'admin' ? ADMIN_NAV : RESTAURANT_NAV;

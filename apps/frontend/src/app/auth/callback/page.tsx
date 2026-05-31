@@ -49,7 +49,12 @@ export default function AuthCallbackPage() {
 
     async function processSession(session: any) {
       // Sync user to our database
-      await apiPost('/api/auth/sync');
+      // Sync user — check for role conflicts
+      const syncRes = await apiPost<{ role: string }>('/api/auth/sync');
+      if (!syncRes.success && syncRes.error?.code === 'ROLE_CONFLICT') {
+        setError(syncRes.error.message);
+        return;
+      }
 
       // Fetch user profile
       const profileRes = await apiGet<{

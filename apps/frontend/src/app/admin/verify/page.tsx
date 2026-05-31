@@ -39,6 +39,7 @@ export default function AdminVerifyPage() {
       setStatus('Verifying...');
       const verifyRes = await apiPost('/api/admin/webauthn/verify', authResp);
       if (verifyRes.success) {
+        sessionStorage.setItem('zenthorax-passkey-verified', '1');
         setStatus('verified');
         router.push('/admin');
       } else {
