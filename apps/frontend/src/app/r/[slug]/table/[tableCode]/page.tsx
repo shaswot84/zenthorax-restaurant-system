@@ -19,6 +19,7 @@ export default function QRMenuPage() {
   const [showCart, setShowCart] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [billStatus, setBillStatus] = useState<string | null>(null);
+  const [billId, setBillId] = useState<string | null>(null);
   const [showBillPanel, setShowBillPanel] = useState(false);
   const [requestingBill, setRequestingBill] = useState(false);
   const [custName, setCustName] = useState('');
@@ -98,7 +99,7 @@ export default function QRMenuPage() {
         body: JSON.stringify({ sessionToken: tableData.sessionToken, customerName: custName.trim(), customerPhone: custPhone.trim() || undefined }),
       });
       const json = await res.json();
-      if (json.success) { setBillStatus(json.data.status); setShowBillPanel(false); }
+      if (json.success) { setBillId(json.data.id); setBillStatus(json.data.status); setShowBillPanel(false); }
     } catch {}
     setRequestingBill(false);
   }
@@ -106,16 +107,22 @@ export default function QRMenuPage() {
   // Poll bill status — updates when restaurant marks as paid
   useEffect(() => {
     if (!billStatus || billStatus === 'paid' || !tableData) return;
+    const token = billId || tableData.sessionToken; // Prefer bill ID, fallback to session
     const interval = setInterval(async () => {
-      const res = await fetch(`${API}/api/bills/${tableData.sessionToken}/public`);
-      const json = await res.json();
-      if (json.success && json.data) {
-        setBillStatus(json.data.status);
-        if (json.data.status === 'paid') clearInterval(interval);
-      }
+      try {
+        const res = await fetch(`${API}/api/bills/${token}/public`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const newStatus = json.data.status;
+          if (newStatus !== billStatus) {
+            setBillStatus(newStatus);
+            if (newStatus === 'paid') clearInterval(interval);
+          }
+        }
+      } catch {}
     }, 5000);
     return () => clearInterval(interval);
-  }, [billStatus, tableData]);
+  }, [billStatus, billId, tableData]);
 
   const filteredItems = activeCat === 'all' ? categories.flatMap(c => c.items) : (categories.find(c => c.id === activeCat)?.items ?? []);
 
@@ -171,7 +178,7 @@ export default function QRMenuPage() {
               {billStatus === 'paid' && (
                 <div>
                   <p className="font-bold mb-1">✅ Payment Confirmed!</p>
-                  <a href={`${API}/api/bills/${tableData?.sessionToken}/public`} target="_blank" rel="noopener" className="inline-block rounded bg-green-500 px-3 py-1 text-xs font-semibold text-white">📥 Download Bill</a>
+                  <a href={`${API}/api/bills/${billId || tableData?.sessionToken}/public`} target="_blank" rel="noopener" className="inline-block rounded bg-green-500 px-3 py-1 text-xs font-semibold text-white">📥 Download Bill</a>
                 </div>
               )}
             </div>
