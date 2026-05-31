@@ -89,18 +89,14 @@ export default function MenuPage() {
     let imageUrl = editingItem?.imageUrl ?? null;
     if (itemImage) {
       const { supabase } = await import('@/lib/supabase');
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) {
-        const formData = new FormData();
-        formData.append('file', itemImage);
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/upload/menu-image`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        const json = await res.json();
-        if (json.success) imageUrl = json.data.imageUrl;
+      // Upload directly from browser to Supabase Storage — much faster
+      const ext = itemImage.name.split('.').pop() || 'jpg';
+      const path = `${restaurant.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error, data: upData } = await supabase.storage
+        .from('menu-images')
+        .upload(path, itemImage, { upsert: true });
+      if (!error && upData) {
+        imageUrl = supabase.storage.from('menu-images').getPublicUrl(path).data.publicUrl;
       }
     }
 
