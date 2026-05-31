@@ -112,16 +112,21 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
   // WEBAUTHN / PASSKEY
   // ═══════════════════════════════════════════════════════════════
 
-  const getRPConfig = () => ({
-    rpName: 'Zenthorax Admin',
-    rpID: di.env.SUPABASE_URL.includes('localhost') ? 'localhost' : 'zenthorax-restaurant-system-frontend.vercel.app',
-    origin: di.env.SUPABASE_URL.includes('localhost') ? 'http://localhost:3000' : 'https://zenthorax-restaurant-system-frontend.vercel.app',
-  });
+  const getRPConfig = (req: any) => {
+    const origin = req.headers.origin || 'https://zenthorax-restaurant-system-frontend.vercel.app';
+    const hostname = origin ? new URL(origin).hostname : 'zenthorax-restaurant-system-frontend.vercel.app';
+    const isLocal = hostname === 'localhost' || hostname.includes('127.0.0.1') || hostname.includes('3000');
+    return {
+      rpName: 'Zenthorax Admin',
+      rpID: isLocal ? 'localhost' : hostname,
+      origin: isLocal ? 'http://localhost:3000' : origin,
+    };
+  };
 
   // GET /api/admin/webauthn/register-options
   app.get('/api/admin/webauthn/register-options', { preHandler: adminOnly }, async (req, reply) => {
     const { generateRegistrationOptions } = await import('@simplewebauthn/server');
-    const rp = getRPConfig();
+    const rp = getRPConfig(req);
     const user = req.user!;
     const existing = await db.query.superAdminCredentials.findFirst({ where: (c: any, { eq }: any) => eq(c.userId, user.id) });
     const userIdBytes = new TextEncoder().encode(user.id);
@@ -140,7 +145,7 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
   // POST /api/admin/webauthn/register — Verify & store
   app.post('/api/admin/webauthn/register', { preHandler: adminOnly }, async (req, reply) => {
     const { verifyRegistrationResponse } = await import('@simplewebauthn/server');
-    const rp = getRPConfig();
+    const rp = getRPConfig(req);
     const user = req.user!;
     const body = req.body as any;
     const challenge = (app as any)._webauthnRegChallenge?.[user.id];
@@ -165,7 +170,7 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
   // GET /api/admin/webauthn/auth-options
   app.get('/api/admin/webauthn/auth-options', { preHandler: adminOnly }, async (req, reply) => {
     const { generateAuthenticationOptions } = await import('@simplewebauthn/server');
-    const rp = getRPConfig();
+    const rp = getRPConfig(req);
     const user = req.user!;
     const options = await generateAuthenticationOptions({ rpID: rp.rpID, userVerification: 'preferred' });
     (app as any)._webauthnAuthChallenge = { ...(app as any)._webauthnAuthChallenge, [user.id]: options.challenge };
@@ -175,7 +180,7 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
   // POST /api/admin/webauthn/verify
   app.post('/api/admin/webauthn/verify', { preHandler: adminOnly }, async (req, reply) => {
     const { verifyAuthenticationResponse } = await import('@simplewebauthn/server');
-    const rp = getRPConfig();
+    const rp = getRPConfig(req);
     const user = req.user!;
     const body = req.body as any;
     const cred = await db.query.superAdminCredentials.findFirst({ where: (c: any, { eq }: any) => eq(c.userId, user.id) });
