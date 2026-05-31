@@ -22,6 +22,7 @@ import { kitchenRoutes } from './routes/kitchen';
 import { billRoutes } from './routes/bills';
 import { uploadRoutes } from './routes/upload';
 import { subscriptionRoutes } from './routes/subscription';
+import { analyticsRoutes } from './routes/analytics';
 import { adminRoutes } from './routes/admin';
 
 async function bootstrap() {
@@ -135,6 +136,7 @@ async function bootstrap() {
   await app.register((instance) => kitchenRoutes(instance, di));
   await app.register((instance) => billRoutes(instance, di));
   await app.register((instance) => subscriptionRoutes(instance, di));
+  await app.register((instance) => analyticsRoutes(instance, di));
   await app.register((instance) => adminRoutes(instance, di));
 
   // --- Global Error Handler ---
