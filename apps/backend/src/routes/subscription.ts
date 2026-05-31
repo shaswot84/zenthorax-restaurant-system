@@ -82,6 +82,16 @@ export async function subscriptionRoutes(app: FastifyInstance, di: SubDI) {
   });
 
   // ---------------------------------------------------------------------------
+  // POST /api/restaurants/:id/subscription/request-cancel — Request cancellation
+  // ---------------------------------------------------------------------------
+  app.post('/api/restaurants/:id/subscription/request-cancel', { preHandler: managerOnly }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await db.update(subscriptions).set({ status: 'pending' as any })
+      .where(and(eq(subscriptions.restaurantId, id) as any, eq(subscriptions.status, 'active' as any) as any) as any);
+    return reply.send({ success: true, data: { status: 'pending', type: 'cancellation' } });
+  });
+
+  // ---------------------------------------------------------------------------
   // POST /api/restaurants/:id/payments/upload — Upload payment proof
   // ---------------------------------------------------------------------------
   app.post('/api/restaurants/:id/payments/upload', { preHandler: managerOnly }, async (req, reply) => {
