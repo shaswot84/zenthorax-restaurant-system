@@ -3,7 +3,7 @@ import type { Database } from '@zenthorax/database';
 import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
 import { superAdminOnly } from '../middleware/rbac';
-import { auditLogs, governanceProposals, governanceVotes, users as usersTable } from '@zenthorax/database/schema';
+import { auditLogs, governanceProposals, governanceVotes, users as usersTable, superAdminCredentials } from '@zenthorax/database/schema';
 import { eq, desc, like, or, and, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
@@ -102,5 +102,61 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
     }
 
     return reply.send({ success: true, data: { approvedCount, required: proposal.requiredApprovals, status: approvedCount >= proposal.requiredApprovals ? 'approved' : 'pending' } });
+  });
+
+  // POST /api/admin/governance/proposals/:id/execute — Execute approved proposal
+  app.post('/api/admin/governance/proposals/:id/execute', { preHandler: adminOnly }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const proposal = await db.query.governanceProposals.findFirst({ where: (p: any, { eq }: any) => eq(p.id, id) });
+    if (!proposal) return reply.status(404).send({ success: false });
+    if (proposal.status !== 'approved') return reply.status(400).send({ success: false, error: { code: 'NOT_APPROVED', message: 'Proposal must be approved before execution.' } });
+
+    await db.update(governanceProposals).set({ status: 'executed' as any }).where(eq(governanceProposals.id, id) as any);
+    return reply.send({ success: true, data: { status: 'executed' } });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // WEBAUTHN (stubs — full implementation requires browser API)
+  // ═══════════════════════════════════════════════════════════════
+
+  app.post('/api/admin/webauthn/register', { preHandler: adminOnly }, async (req, reply) => {
+    const { credentialId, publicKey } = req.body as { credentialId?: string; publicKey?: string };
+    if (!credentialId || !publicKey) return reply.status(400).send({ success: false, error: { code: 'VALIDATION' } });
+
+    await db.insert(superAdminCredentials).values({
+      id: randomUUID(), userId: req.user!.id, credentialId, publicKey,
+    } as any);
+
+    return reply.status(201).send({ success: true, data: { registered: true } });
+  });
+
+  app.post('/api/admin/webauthn/verify', { preHandler: adminOnly }, async (_req, reply) => {
+    // In production, this would verify a WebAuthn assertion challenge
+    return reply.send({ success: true, data: { verified: true, challenge: randomUUID() } });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // AUDIT LOGS CSV EXPORT
+  // ═══════════════════════════════════════════════════════════════
+
+  app.get('/api/admin/audit-logs/export', { preHandler: adminOnly }, async (req, reply) => {
+    const { search } = req.query as Record<string, string>;
+    let conditions: any[] = [];
+    if (search) { const term = `%${search}%`; conditions.push(or(like(auditLogs.action, term), like(auditLogs.targetType, term)) as any); }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const logs = await db.query.auditLogs.findMany({
+      where: where as any, orderBy: [desc(auditLogs.createdAt)], limit: 1000,
+      with: { actor: { columns: { email: true } }, restaurant: { columns: { name: true } } },
+    });
+
+    const header = 'Time,Actor,Action,Target Type,Target ID,Restaurant,IP Address\n';
+    const rows = logs.map(l =>
+      `"${l.createdAt}","${l.actor?.email ?? 'System'}","${l.action}","${l.targetType ?? ''}","${l.targetId ?? ''}","${l.restaurant?.name ?? ''}","${l.ipAddress ?? ''}"`
+    ).join('\n');
+
+    reply.header('Content-Type', 'text/csv');
+    reply.header('Content-Disposition', 'attachment; filename="audit-logs.csv"');
+    return reply.send(header + rows);
   });
 }
