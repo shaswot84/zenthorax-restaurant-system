@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin === 'http://localhost:3000' ? 'http://localhost:3000' : 'https://zenthorax-restaurant-system-frontend.vercel.app'}/auth/callback`,
       },
     });
   }
