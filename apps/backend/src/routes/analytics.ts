@@ -101,6 +101,30 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
     return reply.send({ success: true, data });
   });
 
+  // ── RESTAURANT: Order Statistics ──
+  app.get('/api/restaurants/:id/analytics/orders', { preHandler: [auth, requireRole(ROLES.RESTAURANT_MANAGER)] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!(await verifyOwner(id, req.user!.id))) return reply.status(403).send({ success: false });
+
+    const data = await db.select({
+      status: orders.status,
+      count: sql<number>`COUNT(*)`,
+    }).from(orders).where(eq(orders.restaurantId, id)).groupBy(orders.status) as any;
+
+    return reply.send({ success: true, data });
+  });
+
+  // ── SUPER ADMIN: Restaurant Comparison ──
+  app.get('/api/admin/analytics/restaurants', { preHandler: [auth, superAdminOnly()] }, async (_req, reply) => {
+    const list = await db.select({
+      id: restaurants.id, name: restaurants.name, status: restaurants.status,
+      orderCount: sql<number>`COALESCE((SELECT COUNT(*) FROM public.orders o WHERE o.restaurant_id = restaurants.id), 0)`,
+      revenue: sql<number>`COALESCE((SELECT SUM(total) FROM public.bills b WHERE b.restaurant_id = restaurants.id AND b.status = 'paid'), 0)`,
+    }).from(restaurants).orderBy(desc(sql`COALESCE((SELECT SUM(total) FROM public.bills b WHERE b.restaurant_id = restaurants.id AND b.status = 'paid'), 0)`)) as any;
+
+    return reply.send({ success: true, data: list });
+  });
+
   // ── SUPER ADMIN: Platform Analytics ──
   app.get('/api/admin/analytics/platform', { preHandler: [auth, superAdminOnly()] }, async (_req, reply) => {
     const [totalRestaurants] = await db.select({ count: sql<number>`COUNT(*)` }).from(restaurants);
