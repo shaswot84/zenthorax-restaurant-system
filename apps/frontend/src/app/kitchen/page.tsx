@@ -51,12 +51,12 @@ export default function KitchenPage() {
 
   async function requestJoin(restaurantId: string) {
     setJoining(restaurantId);
-    await apiPost('/api/auth/kitchen/request-access', { restaurantId });
+    const res = await apiPost<{ id: string; isApproved: boolean; status: string }>('/api/auth/kitchen/request-access', { restaurantId });
     setJoining('');
-    setShowRestaurants(false);
-    // Reload staff record
-    const r = await apiGet<any>('/api/auth/me');
-    if (r.success) setStaffRecord(r.data.kitchenStaff);
+    if (res.success && res.data) {
+      // Update staff record locally to show pending state immediately
+      setStaffRecord({ id: res.data.id, restaurantId, isApproved: false });
+    }
   }
 
   // Load tickets when restaurant is set
@@ -140,18 +140,30 @@ export default function KitchenPage() {
               </button>
             ) : (
               <div className="mt-4 space-y-2 text-left max-w-md mx-auto">
-                {allRestaurants.map(r => (
-                  <div key={r.id} className="flex items-center justify-between rounded-lg border bg-gray-50 p-3">
-                    <div>
-                      <p className="text-sm font-semibold">{r.name}</p>
-                      <p className="text-xs text-muted-foreground">{r.address}</p>
+                {allRestaurants.map(r => {
+                  const isRequested = staffRecord?.restaurantId === r.id;
+                  return (
+                    <div key={r.id} className={`flex items-center justify-between rounded-lg border p-3 ${isRequested ? 'bg-blue-50 border-blue-200' : 'bg-gray-50'}`}>
+                      <div>
+                        <p className="text-sm font-semibold">{r.name}</p>
+                        <p className="text-xs text-muted-foreground">{r.address}</p>
+                        {isRequested && (
+                          <p className="mt-1 text-xs font-medium text-blue-600">
+                            {staffRecord?.isApproved ? '✓ Approved' : '⏳ Request sent — waiting for approval'}
+                          </p>
+                        )}
+                      </div>
+                      {isRequested ? (
+                        <span className="text-xs text-blue-500 font-medium">Pending</span>
+                      ) : (
+                        <button onClick={() => requestJoin(r.id)} disabled={joining === r.id}
+                          className="rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
+                          {joining === r.id ? 'Sending...' : 'Join'}
+                        </button>
+                      )}
                     </div>
-                    <button onClick={() => requestJoin(r.id)} disabled={joining === r.id}
-                      className="rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
-                      {joining === r.id ? 'Sending...' : 'Join'}
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
                 <button onClick={() => setShowRestaurants(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
               </div>
             )}
