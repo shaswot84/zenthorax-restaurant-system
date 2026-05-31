@@ -146,6 +146,11 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <p>&copy; {new Date().getFullYear()} Zenthorax. All rights reserved.</p>
           <p className="mt-2">QR-based restaurant ordering platform. Made in Nepal 🇳🇵</p>
+          <div className="mt-6 pt-6 border-t border-gray-700">
+            <a href="/kitchen/login" className="text-gray-500 hover:text-gray-300 transition-colors text-xs">
+              👨‍🍳 Kitchen staff? Sign in here
+            </a>
+          </div>
         </div>
       </footer>
     </main>
