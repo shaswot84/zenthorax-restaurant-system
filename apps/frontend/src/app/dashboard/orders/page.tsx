@@ -43,6 +43,9 @@ export default function OrdersPage() {
 
   useEffect(() => { if (!isLoading && !user) router.push('/login'); else if (user) load(); }, [user, isLoading]);
 
+  // Poll orders every 12s for real-time kitchen updates
+  useEffect(() => { if (!restaurant) return; const i = setInterval(() => load(), 12000); return () => clearInterval(i); }, [restaurant, load]);
+
   function statusColor(s: string) {
     if (s === 'received') return 'bg-blue-100 text-blue-700';
     if (s === 'preparing') return 'bg-yellow-100 text-yellow-700';

@@ -33,6 +33,9 @@ export default function BillingPage() {
 
   useEffect(() => { if (!isLoading && !user) router.push('/login'); else if (user) load(); }, [user, isLoading, tab]);
 
+  // Poll bills every 12s for real-time updates
+  useEffect(() => { if (!restaurant) return; const i = setInterval(() => load(), 12000); return () => clearInterval(i); }, [restaurant, tab, load]);
+
   async function openBill(billId: string) {
     if (!restaurant) return;
     const res = await apiGet<any>(`/api/restaurants/${restaurant.id}/bills/${billId}`);
