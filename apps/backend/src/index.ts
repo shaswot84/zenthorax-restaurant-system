@@ -129,7 +129,7 @@ async function bootstrap() {
   await app.register((instance) => restaurantRoutes(instance, di));
   await app.register((instance) => menuRoutes(instance, di));
   await app.register((instance) => tableRoutes(instance, di));
-  await app.register((instance) => orderRoutes(instance, env));
+  await app.register((instance) => orderRoutes(instance, di));
   await app.register((instance) => billRoutes(instance, env));
   await app.register((instance) => adminRoutes(instance, di));
 
