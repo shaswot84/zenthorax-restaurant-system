@@ -84,20 +84,22 @@ export default function AdminAnalyticsPage() {
             )}
           </div>
 
-          {/* Status Distribution */}
+          {/* Status Distribution — Horizontal Bar */}
           <div className="rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Subscription Status</h2>
             {statusDist.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No data yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, value }: any) => `${name}: ${value}`}>
-                    {statusDist.map((_: any, i: number) => <Cell key={i} fill={statusDist[i]!.color} />)}
-                  </Pie>
+                <BarChart data={statusDist} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Legend />
-                </PieChart>
+                  <Bar dataKey="value" name="Restaurants" radius={[0, 4, 4, 0]}>
+                    {statusDist.map((d: any, i: number) => <Cell key={i} fill={d.color} />)}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             )}
           </div>

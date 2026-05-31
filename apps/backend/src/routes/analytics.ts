@@ -128,9 +128,10 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
   // ── SUPER ADMIN: Subscription Analytics ──
   app.get('/api/admin/analytics/subscriptions', { preHandler: [auth, superAdminOnly()] }, async (_req, reply) => {
     const now = new Date();
-    const graceEnd = new Date(now.getTime() - 7 * 86400000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 86400000);
 
-    // Package breakdown: active subscriptions by package
+    // Package breakdown: TRUE active (end_date in future) by package
     const packageBreakdown = await db.select({
       packageName: subscriptionPackages.name,
       durationMonths: subscriptionPackages.durationMonths,
@@ -138,23 +139,31 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       revenue: sql<number>`COALESCE(SUM(${subscriptionPackages.priceNrs}), 0)`,
     }).from(subscriptions)
       .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
-      .where(eq(subscriptions.status, 'active' as any) as any)
+      .where(and(eq(subscriptions.status, 'active' as any), sql`end_date > NOW()` as any) as any)
       .groupBy(subscriptionPackages.name, subscriptionPackages.durationMonths, subscriptionPackages.priceNrs) as any;
 
-    // Grace period: active subscriptions that have passed end_date but within 7 days
+    // True active: status=active AND end_date > NOW()
+    const [trulyActive] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
+      .where(and(eq(subscriptions.status, 'active' as any), sql`end_date > NOW()` as any) as any);
+
+    // Grace period: status=active AND end_date passed but within last 7 days
     const [gracePeriod] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
       .where(and(
         eq(subscriptions.status, 'active' as any),
-        gte(subscriptions.endDate as any, graceEnd) as any,
+        sql`end_date < NOW()` as any,
+        sql`end_date >= NOW() - INTERVAL '7 days'` as any,
       ) as any);
+
+    // Expired: status=active AND end_date passed more than 7 days ago
     const [expired] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
-      .where(and(eq(subscriptions.status, 'active' as any), sql`end_date < NOW()` as any) as any);
-    const [activeCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
-      .where(eq(subscriptions.status, 'active' as any) as any);
+      .where(and(
+        eq(subscriptions.status, 'active' as any),
+        sql`end_date < NOW() - INTERVAL '7 days'` as any,
+      ) as any);
+
     const [totalRestaurants] = await db.select({ count: sql<number>`COUNT(*)` }).from(restaurants);
 
-    // Upcoming expirations (within next 7 days)
-    const weekFromNow = new Date(now.getTime() + 7 * 86400000);
+    // Upcoming expirations: active AND end_date within next 7 days (still in future)
     const upcoming = await db.select({
       restaurantName: restaurants.name,
       packageName: subscriptionPackages.name,
@@ -165,14 +174,15 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
       .where(and(
         eq(subscriptions.status, 'active' as any),
-        sql`end_date BETWEEN NOW() AND ${weekFromNow.toISOString()}` as any,
+        sql`end_date > NOW()` as any,
+        sql`end_date <= NOW() + INTERVAL '7 days'` as any,
       ) as any)
       .orderBy(subscriptions.endDate) as any;
 
     return reply.send({ success: true, data: {
       packageBreakdown,
       totalRestaurants: Number(totalRestaurants?.count ?? 0),
-      activeSubscriptions: Number(activeCount?.count ?? 0),
+      activeSubscriptions: Number(trulyActive?.count ?? 0),
       gracePeriod: Number(gracePeriod?.count ?? 0),
       expired: Number(expired?.count ?? 0),
       upcomingExpirations: upcoming,
@@ -182,9 +192,12 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
   // ── SUPER ADMIN: Subscription Revenue Trend ──
   app.get('/api/admin/analytics/subscription-revenue', { preHandler: [auth, superAdminOnly()] }, async (req, reply) => {
     const planFilter = (req.query as any).plan ?? 'all';
-    const days = 30;
+    const days = 60; // look back 60 days for meaningful trend
 
-    let whereClause: any = and(eq(subscriptions.status, 'active' as any), sql`start_date > NOW() - INTERVAL '${days} days'` as any);
+    let whereClause: any = and(
+      eq(subscriptions.status, 'active' as any),
+      sql`start_date > NOW() - INTERVAL '${days} days'` as any,
+    );
     if (planFilter !== 'all') {
       whereClause = and(whereClause, eq(subscriptionPackages.durationMonths, parseInt(planFilter)) as any);
     }
