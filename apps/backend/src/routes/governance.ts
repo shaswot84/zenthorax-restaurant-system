@@ -3,7 +3,7 @@ import type { Database } from '@zenthorax/database';
 import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
 import { superAdminOnly } from '../middleware/rbac';
-import { auditLogs, governanceProposals, governanceVotes, users as usersTable, superAdminCredentials } from '@zenthorax/database/schema';
+import { auditLogs, governanceProposals, governanceVotes, users as usersTable, superAdminCredentials, restaurants } from '@zenthorax/database/schema';
 import { eq, desc, like, or, and, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
@@ -94,8 +94,18 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
     const proposal = await db.query.governanceProposals.findFirst({ where: (p: any, { eq }: any) => eq(p.id, id) });
     if (!proposal) return reply.status(404).send({ success: false });
     if (proposal.status !== 'approved') return reply.status(400).send({ success: false, error: { code: 'NOT_APPROVED' } });
+
+    // Execute the actual action based on proposal type
+    if (proposal.actionType === 'add_super_admin' && proposal.targetId) {
+      await db.update(usersTable).set({ role: 'super_admin' as any }).where(eq(usersTable.email, proposal.targetId) as any);
+    } else if (proposal.actionType === 'remove_super_admin' && proposal.targetId) {
+      await db.update(usersTable).set({ role: 'restaurant_manager' as any }).where(eq(usersTable.email, proposal.targetId) as any);
+    } else if (proposal.actionType === 'hard_delete_restaurant' && proposal.targetId) {
+      await db.delete(restaurants).where(eq(restaurants.id, proposal.targetId) as any);
+    }
+
     await db.update(governanceProposals).set({ status: 'executed' as any }).where(eq(governanceProposals.id, id) as any);
-    return reply.send({ success: true, data: { status: 'executed' } });
+    return reply.send({ success: true, data: { status: 'executed', actionType: proposal.actionType } });
   });
 
   // ═══════════════════════════════════════════════════════════════
