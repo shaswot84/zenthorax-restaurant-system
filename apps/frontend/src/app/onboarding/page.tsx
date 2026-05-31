@@ -51,6 +51,13 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/login');
+      return;
+    }
+    // If user already has a restaurant, skip onboarding
+    if (user) {
+      apiGet<any>('/api/restaurants/mine').then(res => {
+        if (res.success && res.data) router.push('/dashboard');
+      });
     }
   }, [user, isLoading, router]);
 
