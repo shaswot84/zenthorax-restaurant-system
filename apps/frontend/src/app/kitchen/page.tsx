@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-provider';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { apiGet, apiPatch } from '@/lib/api';
+import { apiGet, apiPost, apiPatch } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
 interface OrderItem { id: string; menuItemName: string; quantity: number; }
@@ -18,6 +18,10 @@ export default function KitchenPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [staffRecord, setStaffRecord] = useState<any>(null);
+  const [allRestaurants, setAllRestaurants] = useState<any[]>([]);
+  const [showRestaurants, setShowRestaurants] = useState(false);
+  const [joining, setJoining] = useState('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const loadTickets = useCallback(async () => {
@@ -31,10 +35,29 @@ export default function KitchenPage() {
     if (!isLoading && !user) { router.push('/login'); return; }
     if (user) {
       apiGet<any>('/api/auth/me').then(r => {
-        if (r.success) setRestaurant(r.data.restaurant);
+        if (r.success) {
+          setRestaurant(r.data.restaurant);
+          setStaffRecord(r.data.kitchenStaff);
+        }
       }).finally(() => setLoading(false));
     }
   }, [user, isLoading]);
+
+  async function loadRestaurants() {
+    const res = await apiGet<any[]>('/api/kitchen/restaurants');
+    if (res.success && res.data) setAllRestaurants(res.data);
+    setShowRestaurants(true);
+  }
+
+  async function requestJoin(restaurantId: string) {
+    setJoining(restaurantId);
+    await apiPost('/api/auth/kitchen/request-access', { restaurantId });
+    setJoining('');
+    setShowRestaurants(false);
+    // Reload staff record
+    const r = await apiGet<any>('/api/auth/me');
+    if (r.success) setStaffRecord(r.data.kitchenStaff);
+  }
 
   // Load tickets when restaurant is set
   useEffect(() => { if (restaurant) loadTickets(); }, [restaurant]);
@@ -105,7 +128,47 @@ export default function KitchenPage() {
         {/* Hidden audio element for notifications */}
         <audio ref={audioRef} src="/sounds/ting-ting.mp3" preload="auto" />
 
-        {/* Ticket grid */}
+        {/* No restaurant assigned — show restaurant browser */}
+        {!restaurant && !staffRecord && (
+          <div className="mt-6 rounded-xl border bg-card p-8 text-center">
+            <p className="text-3xl mb-2">🏪</p>
+            <h3 className="text-lg font-bold">No Restaurant Assigned</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Browse available restaurants and send a join request.</p>
+            {!showRestaurants ? (
+              <button onClick={loadRestaurants} className="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600">
+                Browse Restaurants
+              </button>
+            ) : (
+              <div className="mt-4 space-y-2 text-left max-w-md mx-auto">
+                {allRestaurants.map(r => (
+                  <div key={r.id} className="flex items-center justify-between rounded-lg border bg-gray-50 p-3">
+                    <div>
+                      <p className="text-sm font-semibold">{r.name}</p>
+                      <p className="text-xs text-muted-foreground">{r.address}</p>
+                    </div>
+                    <button onClick={() => requestJoin(r.id)} disabled={joining === r.id}
+                      className="rounded-lg bg-brand-500 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
+                      {joining === r.id ? 'Sending...' : 'Join'}
+                    </button>
+                  </div>
+                ))}
+                <button onClick={() => setShowRestaurants(false)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pending approval state */}
+        {!restaurant && staffRecord && !staffRecord.isApproved && (
+          <div className="mt-6 rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6 text-center">
+            <p className="text-3xl">⏳</p>
+            <h3 className="text-lg font-bold text-yellow-800">Awaiting Approval</h3>
+            <p className="mt-1 text-sm text-yellow-700">Your request has been sent. The restaurant manager will review it.</p>
+          </div>
+        )}
+
+        {/* Ticket grid — only shown when assigned to an active restaurant */}
+        {restaurant && (
         <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {tickets.length === 0 ? (
             <div className="col-span-full rounded-xl border bg-card p-16 text-center">
@@ -173,6 +236,7 @@ export default function KitchenPage() {
             </div>
           ))}
         </div>
+        )}
       </div>
     </DashboardLayout>
   );
