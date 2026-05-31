@@ -76,13 +76,13 @@ export default function AnalyticsPage() {
             <p className="text-muted-foreground text-center py-8">No revenue data yet.</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenue}>
+              <LineChart data={revenue}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number) => `NRS ${v.toLocaleString()}`} />
-                <Bar dataKey="revenue" fill="#f97316" radius={[4, 4, 0, 0]} name="Revenue" />
-              </BarChart>
+                <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 3 }} name="Revenue" />
+              </LineChart>
             </ResponsiveContainer>
           )}
         </div>
