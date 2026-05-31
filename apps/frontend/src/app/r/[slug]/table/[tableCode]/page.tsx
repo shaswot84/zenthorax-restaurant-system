@@ -26,6 +26,15 @@ export default function QRMenuPage() {
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [billData, setBillData] = useState<any>(null);
+  const [sessionOrders, setSessionOrders] = useState<any[]>([]);
+
+  // Load session orders
+  async function loadSessionOrders() {
+    if (!tableData) return;
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/sessions/${tableData.sessionToken}/orders`);
+    const json = await res.json();
+    if (json.success && json.data) setSessionOrders(json.data.filter((o: any) => o.status !== 'cancelled'));
+  }
 
   const load = useCallback(async () => {
     try {
@@ -40,6 +49,7 @@ export default function QRMenuPage() {
         const menuJson = await menuRes.json();
         if (menuJson.success && menuJson.data) setCategories(menuJson.data);
         setStatus('valid');
+        loadSessionOrders();
       } else {
         setError(json.error?.message ?? 'Invalid QR code');
         setStatus('invalid');
@@ -105,7 +115,7 @@ export default function QRMenuPage() {
         setOrderStatus('received');
         setCart([]);
         setShowCart(false);
-        // Poll for status updates
+        loadSessionOrders();
         pollOrderStatus(json.data.id);
       }
     } catch {}
@@ -169,19 +179,39 @@ export default function QRMenuPage() {
 
       {/* Item grid */}
       <main className={`p-3 ${cart.length > 0 ? 'pb-20' : ''}`}>
-        {lastOrder && (
+        {sessionOrders.length > 0 && !billStatus && (
           <div className="mb-4 rounded-xl border-2 border-green-200 bg-green-50 p-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <span className="text-xl">✅</span>
               <div>
-                <p className="font-semibold text-green-800">Order Placed!</p>
-                <p className="text-sm text-green-700">Status: <span className="font-bold capitalize">{orderStatus}</span></p>
+                <p className="font-semibold text-green-800">Orders Placed</p>
+                <p className="text-sm text-green-700">
+                  {sessionOrders.length} order(s) · {sessionOrders.filter(o => o.status === 'received').length} received · {sessionOrders.filter(o => o.status === 'preparing').length} preparing · {sessionOrders.filter(o => o.status === 'ready').length} ready
+                </p>
               </div>
             </div>
+            {/* Show ordered items */}
+            <div className="space-y-1 mb-3 max-h-32 overflow-y-auto">
+              {sessionOrders.map((o: any) => o.items.map((i: any) => (
+                <div key={i.id} className="flex justify-between text-xs text-green-700">
+                  <span>{i.quantity}x {i.menuItemName}</span>
+                  <span className="text-muted-foreground">NRS {i.totalPrice}</span>
+                </div>
+              )))}
+            </div>
+            <p className="text-xs text-green-600 mb-2">
+              💡 You can continue ordering more items until you request the bill. All orders will be on one bill.
+            </p>
             <button onClick={() => { setLastOrder(null); setOrderStatus(null); }}
-              className="mt-2 w-full rounded-lg border border-green-300 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100">
-              Order More
+              className="w-full rounded-lg border border-green-300 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100">
+              + Add More Items
             </button>
+          </div>
+        )}
+        {lastOrder && sessionOrders.length === 0 && (
+          <div className="mb-4 rounded-xl border-2 border-green-200 bg-green-50 p-4">
+            <p className="font-semibold text-green-800">✅ Order Placed!</p>
+            <p className="text-sm text-green-700">Status: <span className="font-bold capitalize">{orderStatus}</span></p>
           </div>
         )}
 
