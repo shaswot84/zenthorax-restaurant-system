@@ -10,3 +10,4 @@ export * from './kitchen';
 export * from './governance';
 export * from './audit';
 export * from './auth';
+export * from './relations';
