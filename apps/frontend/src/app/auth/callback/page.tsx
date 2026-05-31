@@ -71,7 +71,7 @@ export default function AuthCallbackPage() {
         }
 
         if (isAdminLogin && role === 'super_admin') {
-          router.push('/admin');
+          router.push('/admin/verify');
           return;
         }
 
@@ -89,7 +89,7 @@ export default function AuthCallbackPage() {
         // No role pre-selected — use the user's actual role from DB
         switch (role) {
           case 'super_admin':
-            router.push('/admin');
+            router.push('/admin/verify');
             break;
           case 'kitchen_staff':
             router.push('/kitchen');

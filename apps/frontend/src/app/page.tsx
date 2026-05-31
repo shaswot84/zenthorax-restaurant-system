@@ -53,17 +53,21 @@ export default function LandingPage() {
             Customers scan, browse, order, and pay — all from their phone. Built for
             Nepali restaurants. No app download required.
           </p>
-          <div className="mt-10">
+          <div className="mt-10 space-y-4">
             <a
               href="#packages"
               className="inline-flex items-center justify-center rounded-lg bg-brand-500 px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-brand-600 transition-colors"
             >
               Get Started — One-time NRS 500 registration
             </a>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Already have a restaurant?{' '}
-              <a href="/login" className="text-brand-500 hover:underline font-medium">Sign in</a>
-            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href="/login" className="inline-flex items-center justify-center rounded-lg border-2 border-brand-500 bg-white px-6 py-3 text-sm font-semibold text-brand-600 hover:bg-brand-50 transition-colors">
+                🏪 Already have a restaurant? Sign in
+              </a>
+              <a href="/kitchen/login" className="inline-flex items-center justify-center rounded-lg border-2 border-amber-400 bg-white px-6 py-3 text-sm font-semibold text-amber-700 hover:bg-amber-50 transition-colors">
+                👨‍🍳 Already have a kitchen? Sign in
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -151,11 +155,6 @@ export default function LandingPage() {
         <div className="container mx-auto">
           <p>&copy; {new Date().getFullYear()} Zenthorax. All rights reserved.</p>
           <p className="mt-2">QR-based restaurant ordering platform. Made in Nepal 🇳🇵</p>
-          <div className="mt-6 pt-6 border-t border-gray-700">
-            <a href="/kitchen/login" className="text-gray-500 hover:text-gray-300 transition-colors text-xs">
-              👨‍🍳 Kitchen staff? Sign in here
-            </a>
-          </div>
         </div>
       </footer>
     </main>

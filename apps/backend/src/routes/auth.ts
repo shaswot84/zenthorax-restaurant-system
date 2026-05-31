@@ -90,30 +90,30 @@ export async function authRoutes(app: FastifyInstance, di: AuthDI) {
       });
     }
 
-    // Enforce exclusive roles: one Google account = one role
-    // Check if this email exists with a different role
+    // STRICT ROLE ISOLATION: One Google account = one role only
     const emailExisting = await db.query.users.findFirst({
       where: (u: any, { eq }: any) => eq(u.email, supabaseUser.email),
     });
-    if (emailExisting && emailExisting.role !== 'restaurant_manager') {
+    if (emailExisting) {
       return reply.status(409).send({
         success: false,
-        error: { code: 'ROLE_CONFLICT', message: `This account is already registered as ${emailExisting.role}. Each Google account can only have one role.` },
+        error: {
+          code: 'ROLE_CONFLICT',
+          message: `This Google account is already registered as a ${emailExisting.role.replace(/_/g, ' ')} and cannot be used to register or sign in with a different role. Each Google account can only have one role.`,
+        },
       });
     }
 
     // Create user record (fallback if trigger didn't fire)
-    await db
-      .insert(users)
-      .values({
-        id: supabaseUser.id,
-        email: supabaseUser.email,
-        role: 'restaurant_manager' as any,
-      });
+    const chosenRole = (req.body as any)?.role || 'restaurant_manager';
+    await db.insert(users).values({
+      id: supabaseUser.id, email: supabaseUser.email,
+      role: chosenRole as any,
+    });
 
     return reply.status(201).send({
       success: true,
-      data: { id: supabaseUser.id, role: 'restaurant_manager', created: true },
+      data: { id: supabaseUser.id, role: chosenRole, created: true },
     });
   });
 
