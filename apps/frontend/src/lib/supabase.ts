@@ -30,6 +30,11 @@ function getSupabaseClient() {
   return clientInstance;
 }
 
+// Force initialization (call this early in the callback page)
+export function initSupabase() {
+  return getSupabaseClient();
+}
+
 // Proxy that lazily initializes the client
 export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
   get(_target, prop) {

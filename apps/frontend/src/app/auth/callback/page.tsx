@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, initSupabase } from '@/lib/supabase';
 import { apiGet, apiPost } from '@/lib/api';
+
+// Force Supabase client init IMMEDIATELY so detectSessionInUrl works
+initSupabase();
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -20,20 +23,8 @@ export default function AuthCallbackPage() {
     }, 15000);
 
     async function handleCallback() {
-      // Manually parse the hash — Supabase puts tokens in the URL fragment
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        const params = new URLSearchParams(hash.substring(1));
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-        if (access_token && refresh_token) {
-          await supabase.auth.setSession({ access_token, refresh_token });
-          // Clean URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-      }
-
-      // Now get the session
+      // Get the session — Supabase client with detectSessionInUrl
+      // auto-exchanges the PKCE code in the query string
       const { data } = await supabase.auth.getSession();
 
       if (!cancelled) {
