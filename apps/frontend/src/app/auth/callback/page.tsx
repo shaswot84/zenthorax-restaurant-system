@@ -83,7 +83,7 @@ export default function AuthCallbackPage() {
           case 'restaurant_manager':
           default:
             if (restaurant) router.push('/dashboard');
-            else router.push('/onboarding');
+            else router.push('/onboarding/role');
             break;
         }
       }
