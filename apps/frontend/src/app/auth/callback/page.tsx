@@ -8,46 +8,80 @@ import { apiGet, apiPost } from '@/lib/api';
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState('');
+  const [debug, setDebug] = useState('');
 
   useEffect(() => {
-    async function handleCallback() {
-      // Supabase handles the OAuth code exchange automatically via the URL hash.
-      // We just wait for the session to be established, then redirect.
-      const { data } = await supabase.auth.getSession();
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        setError('Authentication timed out. Please try again.');
+        setDebug(`URL: ${window.location.href}`);
+      }
+    }, 15000);
 
-      if (!data.session) {
-        setError('Authentication failed. Please try again.');
-        return;
+    async function handleCallback() {
+      // Manually parse the hash — Supabase puts tokens in the URL fragment
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
       }
 
+      // Now get the session
+      const { data } = await supabase.auth.getSession();
+
+      if (!cancelled) {
+        if (!data.session) {
+          // Try once more after a short delay (Supabase might still be processing)
+          await new Promise(r => setTimeout(r, 1000));
+          const retry = await supabase.auth.getSession();
+          if (!retry.data.session) {
+            setError('Authentication failed. No session established.');
+            setDebug(`URL: ${window.location.href}`);
+            clearTimeout(timeout);
+            return;
+          }
+          // Use retry data
+          await processSession(retry.data.session);
+        } else {
+          await processSession(data.session);
+        }
+        clearTimeout(timeout);
+      }
+    }
+
+    async function processSession(session: any) {
       // Sync user to our database
       await apiPost('/api/auth/sync');
 
-      // Fetch user profile to determine role and redirect
+      // Fetch user profile
       const profileRes = await apiGet<{
         role: string;
         restaurant: { slug: string } | null;
         kitchenStaff: { restaurantId: string } | null;
       }>('/api/auth/me');
 
-      if (profileRes.success && profileRes.data) {
+      if (!cancelled && profileRes.success && profileRes.data) {
         const { role, restaurant } = profileRes.data;
         const isAdminLogin = localStorage.getItem('zenthorax-admin-login') === '1';
         localStorage.removeItem('zenthorax-admin-login');
 
-        // Admin login: only allow super_admin role
         if (isAdminLogin && role !== 'super_admin') {
-          setError('This account does not have super admin privileges. Please use the restaurant login instead.');
+          setError('This account does not have super admin privileges.');
           return;
         }
 
-        // Admin login succeeded
         if (isAdminLogin && role === 'super_admin') {
           router.push('/admin');
           return;
         }
 
-        // Regular login: super admin can use either
         switch (role) {
           case 'super_admin':
             router.push('/admin');
@@ -57,31 +91,36 @@ export default function AuthCallbackPage() {
             break;
           case 'restaurant_manager':
           default:
-            if (restaurant) {
-              router.push('/dashboard');
-            } else {
-              router.push('/onboarding');
-            }
+            if (restaurant) router.push('/dashboard');
+            else router.push('/onboarding');
             break;
         }
       }
     }
 
     handleCallback();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [router]);
 
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
             <span className="text-2xl">⚠️</span>
           </div>
           <h1 className="mt-4 text-xl font-bold">Authentication Failed</h1>
           <p className="mt-2 text-muted-foreground">{error}</p>
-          <a href="/login" className="mt-4 inline-block text-brand-500 hover:underline">
-            Back to login
-          </a>
+          {debug && <p className="mt-2 text-xs text-gray-400 break-all">{debug}</p>}
+          <div className="mt-4 space-x-3">
+            <a href="/login" className="text-brand-500 hover:underline">Restaurant login</a>
+            <span className="text-muted-foreground">|</span>
+            <a href="/admin/login" className="text-brand-500 hover:underline">Admin login</a>
+          </div>
         </div>
       </div>
     );
