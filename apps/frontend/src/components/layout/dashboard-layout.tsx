@@ -35,6 +35,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Analytics', href: '/admin/analytics', icon: '📈', section: 'Main' },
   { label: 'Governance', href: '/admin/governance', icon: '⚖️', section: 'Security' },
   { label: 'Audit Logs', href: '/admin/audit', icon: '📝', section: 'Security' },
+  { label: 'Passkeys', href: '/admin/security', icon: '🔑', section: 'Security' },
 ];
 
 export function DashboardLayout({
