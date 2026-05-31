@@ -4,7 +4,7 @@ import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
 import { requireRole, superAdminOnly } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
-import { bills, orders, orderItems, restaurants } from '@zenthorax/database/schema';
+import { bills, orders, orderItems, restaurants, subscriptions, subscriptionPackages } from '@zenthorax/database/schema';
 import { eq, and, gte, sql, desc, inArray } from 'drizzle-orm';
 
 interface AnalyticsDI { db: Database; env: Env; }
@@ -123,6 +123,82 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
     }).from(restaurants).orderBy(desc(sql`COALESCE((SELECT SUM(total) FROM public.bills b WHERE b.restaurant_id = restaurants.id AND b.status = 'paid'), 0)`)) as any;
 
     return reply.send({ success: true, data: list });
+  });
+
+  // ── SUPER ADMIN: Subscription Analytics ──
+  app.get('/api/admin/analytics/subscriptions', { preHandler: [auth, superAdminOnly()] }, async (_req, reply) => {
+    const now = new Date();
+    const graceEnd = new Date(now.getTime() - 7 * 86400000);
+
+    // Package breakdown: active subscriptions by package
+    const packageBreakdown = await db.select({
+      packageName: subscriptionPackages.name,
+      durationMonths: subscriptionPackages.durationMonths,
+      activeCount: sql<number>`COUNT(*)`,
+      revenue: sql<number>`COALESCE(SUM(${subscriptionPackages.priceNrs}), 0)`,
+    }).from(subscriptions)
+      .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
+      .where(eq(subscriptions.status, 'active' as any) as any)
+      .groupBy(subscriptionPackages.name, subscriptionPackages.durationMonths, subscriptionPackages.priceNrs) as any;
+
+    // Grace period: active subscriptions that have passed end_date but within 7 days
+    const [gracePeriod] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
+      .where(and(
+        eq(subscriptions.status, 'active' as any),
+        gte(subscriptions.endDate as any, graceEnd) as any,
+      ) as any);
+    const [expired] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
+      .where(and(eq(subscriptions.status, 'active' as any), sql`end_date < NOW()` as any) as any);
+    const [activeCount] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
+      .where(eq(subscriptions.status, 'active' as any) as any);
+    const [totalRestaurants] = await db.select({ count: sql<number>`COUNT(*)` }).from(restaurants);
+
+    // Upcoming expirations (within next 7 days)
+    const weekFromNow = new Date(now.getTime() + 7 * 86400000);
+    const upcoming = await db.select({
+      restaurantName: restaurants.name,
+      packageName: subscriptionPackages.name,
+      endDate: subscriptions.endDate,
+      daysLeft: sql<number>`EXTRACT(DAY FROM (end_date - NOW()))`,
+    }).from(subscriptions)
+      .innerJoin(restaurants, eq(subscriptions.restaurantId, restaurants.id))
+      .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
+      .where(and(
+        eq(subscriptions.status, 'active' as any),
+        sql`end_date BETWEEN NOW() AND ${weekFromNow.toISOString()}` as any,
+      ) as any)
+      .orderBy(subscriptions.endDate) as any;
+
+    return reply.send({ success: true, data: {
+      packageBreakdown,
+      totalRestaurants: Number(totalRestaurants?.count ?? 0),
+      activeSubscriptions: Number(activeCount?.count ?? 0),
+      gracePeriod: Number(gracePeriod?.count ?? 0),
+      expired: Number(expired?.count ?? 0),
+      upcomingExpirations: upcoming,
+    }});
+  });
+
+  // ── SUPER ADMIN: Subscription Revenue Trend ──
+  app.get('/api/admin/analytics/subscription-revenue', { preHandler: [auth, superAdminOnly()] }, async (req, reply) => {
+    const planFilter = (req.query as any).plan ?? 'all';
+    const days = 30;
+
+    let whereClause: any = and(eq(subscriptions.status, 'active' as any), sql`start_date > NOW() - INTERVAL '${days} days'` as any);
+    if (planFilter !== 'all') {
+      whereClause = and(whereClause, eq(subscriptionPackages.durationMonths, parseInt(planFilter)) as any);
+    }
+
+    const data = await db.select({
+      day: sql<string>`DATE(start_date)`,
+      revenue: sql<number>`COALESCE(SUM(${subscriptionPackages.priceNrs}), 0)`,
+      count: sql<number>`COUNT(*)`,
+    }).from(subscriptions)
+      .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
+      .where(whereClause as any)
+      .groupBy(sql`DATE(start_date)`).orderBy(sql`DATE(start_date)`) as any;
+
+    return reply.send({ success: true, data });
   });
 
   // ── SUPER ADMIN: Platform Analytics ──
