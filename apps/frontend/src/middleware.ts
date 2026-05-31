@@ -6,7 +6,7 @@ const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/r/', '/admin/login', 
 const PROTECTED_PATHS: Record<string, string> = {
   '/dashboard': '/login',
   '/kitchen': '/login',
-  '/admin': '/login',
+  '/admin': '/admin/login',
   '/onboarding': '/login',
 };
 
