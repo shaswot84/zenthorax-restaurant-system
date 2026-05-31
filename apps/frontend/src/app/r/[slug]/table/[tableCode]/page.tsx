@@ -141,7 +141,7 @@ export default function QRMenuPage() {
           </div>
           {/* Bill Download — top right, always visible, disabled until paid */}
           <a
-            href={billStatus === 'paid' ? `/bill/${billId || tableData?.sessionToken}` : undefined}
+            href={billStatus === 'paid' ? `/bill/${tableData?.sessionToken}` : undefined}
             target={billStatus === 'paid' ? '_blank' : undefined}
             rel={billStatus === 'paid' ? 'noopener' : undefined}
             onClick={e => { if (billStatus !== 'paid') e.preventDefault(); }}
