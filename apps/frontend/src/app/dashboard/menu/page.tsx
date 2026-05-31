@@ -88,13 +88,27 @@ export default function MenuPage() {
 
     let imageUrl = editingItem?.imageUrl ?? null;
     if (itemImage) {
+      // Compress on client side before upload (reduces size 5-10x)
+      const compressed = await new Promise<Blob>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxW = 500, maxH = 500;
+          let w = img.width, h = img.height;
+          if (w > maxW) { h = (h * maxW) / w; w = maxW; }
+          if (h > maxH) { w = (w * maxH) / h; h = maxH; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(blob => resolve(blob!), 'image/webp', 0.75);
+        };
+        img.src = URL.createObjectURL(itemImage);
+      });
+
       const { supabase } = await import('@/lib/supabase');
-      // Upload directly from browser to Supabase Storage — much faster
-      const ext = itemImage.name.split('.').pop() || 'jpg';
-      const path = `${restaurant.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${restaurant.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
       const { error, data: upData } = await supabase.storage
         .from('menu-images')
-        .upload(path, itemImage, { upsert: true });
+        .upload(path, compressed, { contentType: 'image/webp', upsert: true });
       if (!error && upData) {
         imageUrl = supabase.storage.from('menu-images').getPublicUrl(path).data.publicUrl;
       }
