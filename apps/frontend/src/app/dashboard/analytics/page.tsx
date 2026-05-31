@@ -5,9 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-provider';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { apiGet } from '@/lib/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement,
+  PointElement, ArcElement, Title, Tooltip, Legend, Filler,
+} from 'chart.js';
+import { Bar, Line, Pie } from 'react-chartjs-2';
 
-const COLORS = ['#f97316', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6'];
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
+
+const CHART_COLORS = ['#f97316', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 export default function AnalyticsPage() {
   const { user, isLoading } = useAuth();
@@ -40,12 +46,36 @@ export default function AnalyticsPage() {
 
   if (isLoading || !user) return null;
 
+  const revenueChart = {
+    labels: revenue.map(d => d.day),
+    datasets: [{
+      label: 'Revenue (NRS)', data: revenue.map(d => d.revenue),
+      borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)',
+      fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#f97316',
+    }],
+  };
+
+  const itemsChart = {
+    labels: items.slice(0, 8).map(d => d.name),
+    datasets: [{
+      label: 'Quantity Sold', data: items.slice(0, 8).map(d => d.quantity),
+      backgroundColor: CHART_COLORS,
+    }],
+  };
+
+  const billsChart = {
+    labels: billStats.map(d => d.status.replace('_', ' ')),
+    datasets: [{
+      data: billStats.map(d => d.count),
+      backgroundColor: ['#22c55e', '#eab308', '#ef4444', '#6b7280'],
+    }],
+  };
+
   return (
     <DashboardLayout variant="restaurant">
       <div>
         <h1 className="text-2xl font-bold">Analytics</h1>
 
-        {/* KPI Cards */}
         <div className="mt-6 grid gap-4 md:grid-cols-5">
           {[
             { label: 'Revenue Today', value: `NRS ${(summary?.revenueToday ?? 0).toLocaleString()}`, color: 'text-green-600' },
@@ -61,12 +91,10 @@ export default function AnalyticsPage() {
           ))}
         </div>
 
-        {/* Revenue Chart */}
         <div className="mt-6 rounded-xl border bg-card p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Revenue Trend</h2>
-            <select value={period} onChange={e => setPeriod(e.target.value)}
-              className="rounded border px-2 py-1 text-xs">
+            <select value={period} onChange={e => setPeriod(e.target.value)} className="rounded border px-2 py-1 text-xs">
               <option value="daily">Daily (14d)</option>
               <option value="weekly">Weekly (7d)</option>
               <option value="monthly">Monthly (30d)</option>
@@ -75,52 +103,34 @@ export default function AnalyticsPage() {
           {revenue.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No revenue data yet.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenue}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => `NRS ${v.toLocaleString()}`} />
-                <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 3 }} name="Revenue" />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-[300px]">
+              <Line data={revenueChart} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+            </div>
           )}
         </div>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          {/* Top Items */}
           <div className="rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Top Selling Items</h2>
             {items.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No data yet.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={items.slice(0, 6)} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v: number) => `${v} sold`} />
-                  <Bar dataKey="quantity" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Qty Sold" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[280px]">
+                <Bar data={itemsChart} options={{ indexAxis: 'y' as const, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+              </div>
             )}
           </div>
 
-          {/* Bills Breakdown */}
           <div className="rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Bills Breakdown</h2>
             {billStats.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No data yet.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={billStats} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={90} label={({ status, count }: any) => `${status} (${count})`}>
-                    {billStats.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="h-[280px] flex items-center justify-center">
+                <div className="w-[250px]">
+                  <Pie data={billsChart} options={{ responsive: true, maintainAspectRatio: true }} />
+                </div>
+              </div>
             )}
           </div>
         </div>

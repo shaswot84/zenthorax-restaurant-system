@@ -5,9 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-provider';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { apiGet } from '@/lib/api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement,
+  PointElement, ArcElement, Title, Tooltip, Legend, Filler,
+} from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
 
-const COLORS = ['#f97316', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6'];
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
+
+const STATUS_COLORS = { Active: '#22c55e', 'Grace Period': '#eab308', Expired: '#ef4444' };
 
 export default function AdminAnalyticsPage() {
   const { user, isLoading } = useAuth();
@@ -34,12 +40,33 @@ export default function AdminAnalyticsPage() {
   const pkg = subData?.packageBreakdown ?? [];
   const totalSubRevenue = pkg.reduce((s: number, p: any) => s + (p.revenue ?? 0), 0);
 
-  // Status distribution for pie chart
   const statusDist = [
-    { name: 'Active', value: subData?.activeSubscriptions ?? 0, color: '#22c55e' },
-    { name: 'Grace Period', value: subData?.gracePeriod ?? 0, color: '#eab308' },
-    { name: 'Expired', value: subData?.expired ?? 0, color: '#ef4444' },
+    { name: 'Active', value: subData?.activeSubscriptions ?? 0, color: STATUS_COLORS.Active },
+    { name: 'Grace Period', value: subData?.gracePeriod ?? 0, color: STATUS_COLORS['Grace Period'] },
+    { name: 'Expired', value: subData?.expired ?? 0, color: STATUS_COLORS.Expired },
   ].filter(d => d.value > 0);
+
+  const packageChart = {
+    labels: pkg.map((p: any) => p.packageName),
+    datasets: [
+      { label: 'Active Restaurants', data: pkg.map((p: any) => p.activeCount), backgroundColor: '#f97316', borderRadius: 4 },
+      { label: 'Revenue (NRS)', data: pkg.map((p: any) => p.revenue), backgroundColor: '#3b82f6', borderRadius: 4 },
+    ],
+  };
+
+  const statusChart = {
+    labels: statusDist.map(d => d.name),
+    datasets: [{ label: 'Restaurants', data: statusDist.map(d => d.value), backgroundColor: statusDist.map(d => d.color), borderRadius: 4 }],
+  };
+
+  const revenueTrendChart = {
+    labels: revData.map(d => d.day),
+    datasets: [{
+      label: 'Subscription Revenue (NRS)', data: revData.map(d => d.revenue),
+      borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.1)',
+      fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#f97316',
+    }],
+  };
 
   return (
     <DashboardLayout variant="admin">
@@ -47,7 +74,6 @@ export default function AdminAnalyticsPage() {
         <h1 className="text-2xl font-bold">Platform Analytics</h1>
         <p className="text-sm text-muted-foreground mt-1">Subscription-based metrics</p>
 
-        {/* KPI Cards — Row 1 */}
         <div className="mt-6 grid gap-4 md:grid-cols-5">
           {[
             { label: 'Total Restaurants', value: subData?.totalRestaurants ?? 0, color: 'text-gray-700' },
@@ -63,49 +89,30 @@ export default function AdminAnalyticsPage() {
           ))}
         </div>
 
-        {/* Package Breakdown */}
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Subscription by Package</h2>
             {pkg.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No data yet.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={pkg}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="packageName" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="activeCount" fill="#f97316" name="Active Restaurants" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="revenue" fill="#3b82f6" name="Revenue (NRS)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[280px]">
+                <Bar data={packageChart} options={{ responsive: true, maintainAspectRatio: false }} />
+              </div>
             )}
           </div>
 
-          {/* Status Distribution — Horizontal Bar */}
           <div className="rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Subscription Status</h2>
             {statusDist.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">No data yet.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={statusDist} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Restaurants" radius={[0, 4, 4, 0]}>
-                    {statusDist.map((d: any, i: number) => <Cell key={i} fill={d.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[280px]">
+                <Bar data={statusChart} options={{ indexAxis: 'y' as const, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+              </div>
             )}
           </div>
         </div>
 
-        {/* Upcoming Expirations */}
         {subData?.upcomingExpirations?.length > 0 && (
           <div className="mt-6 rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">Upcoming Expirations (Next 7 Days)</h2>
@@ -121,12 +128,10 @@ export default function AdminAnalyticsPage() {
           </div>
         )}
 
-        {/* Subscription Revenue Trend — Line Graph */}
         <div className="mt-6 rounded-xl border bg-card p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Subscription Revenue Trend</h2>
-            <select value={revPlan} onChange={e => setRevPlan(e.target.value)}
-              className="rounded border px-2 py-1 text-xs">
+            <select value={revPlan} onChange={e => setRevPlan(e.target.value)} className="rounded border px-2 py-1 text-xs">
               <option value="all">All Plans</option>
               <option value="1">Monthly</option>
               <option value="3">3-Month</option>
@@ -136,16 +141,9 @@ export default function AdminAnalyticsPage() {
           {revData.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No revenue data yet.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => `NRS ${v.toLocaleString()}`} />
-                <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} name="Revenue" />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-[300px]">
+              <Line data={revenueTrendChart} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+            </div>
           )}
         </div>
       </div>
