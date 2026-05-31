@@ -191,6 +191,35 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       ) as any)
       .orderBy(subscriptions.endDate) as any;
 
+    // Full sorted restaurant subscription status list
+    const allSubs = await db.select({
+      restaurantName: restaurants.name,
+      restaurantSlug: restaurants.slug,
+      packageName: subscriptionPackages.name,
+      durationMonths: subscriptionPackages.durationMonths,
+      status: subscriptions.status,
+      startDate: subscriptions.startDate,
+      endDate: subscriptions.endDate,
+      daysRemaining: sql<number>`EXTRACT(DAY FROM (end_date - NOW()))`,
+    }).from(subscriptions)
+      .innerJoin(restaurants, eq(subscriptions.restaurantId, restaurants.id))
+      .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
+      .where(eq(subscriptions.status, 'active' as any) as any)
+      .orderBy(sql`EXTRACT(DAY FROM (end_date - NOW()))`) as any;
+
+    // Categorize and sort: Active (ascending days left), Grace Period, Expired
+    const categorized = {
+      active: allSubs
+        .filter((s: any) => s.daysRemaining > 0)
+        .sort((a: any, b: any) => a.daysRemaining - b.daysRemaining), // soonest expiring first
+      gracePeriod: allSubs
+        .filter((s: any) => s.daysRemaining <= 0 && s.daysRemaining > -7)
+        .sort((a: any, b: any) => b.daysRemaining - a.daysRemaining), // most recently expired first
+      expired: allSubs
+        .filter((s: any) => s.daysRemaining <= -7)
+        .sort((a: any, b: any) => a.daysRemaining - b.daysRemaining), // longest expired first
+    };
+
     return reply.send({ success: true, data: {
       packageBreakdown,
       totalRestaurants: Number(totalRestaurants?.count ?? 0),
@@ -200,6 +229,7 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       collectedRevenue: Number(paymentRevenue?.total ?? 0),
       totalSubscriptionValue: Number(totalSubValue?.total ?? 0),
       upcomingExpirations: upcoming,
+      restaurantStatuses: categorized,
     }});
   });
 

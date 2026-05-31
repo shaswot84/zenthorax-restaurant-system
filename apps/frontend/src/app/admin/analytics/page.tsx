@@ -115,17 +115,71 @@ export default function AdminAnalyticsPage() {
           </div>
         </div>
 
-        {subData?.upcomingExpirations?.length > 0 && (
+        {/* Restaurant Subscription Status — Sorted by remaining periods */}
+        {subData?.restaurantStatuses && (
           <div className="mt-6 rounded-xl border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Upcoming Expirations (Next 7 Days)</h2>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {subData.upcomingExpirations.map((e: any, i: number) => (
-                <div key={i} className="flex justify-between text-sm border-b py-2">
-                  <span className="font-medium">{e.restaurantName}</span>
-                  <span className="text-muted-foreground">{e.packageName}</span>
-                  <span className="text-red-600 font-medium">{Math.round(e.daysLeft)} days left</span>
+            <h2 className="text-lg font-semibold mb-4">Restaurant Subscription Status</h2>
+            <div className="space-y-4">
+              {/* Active — sorted by soonest expiring */}
+              {subData.restaurantStatuses.active?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-green-700 mb-2">
+                    🟢 Active ({subData.restaurantStatuses.active.length})
+                  </h3>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {subData.restaurantStatuses.active.map((r: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-sm border-b py-1.5">
+                        <span className="font-medium">{r.restaurantName}</span>
+                        <span className="text-xs text-muted-foreground">{r.packageName}</span>
+                        <span className={`text-xs font-medium ${r.daysRemaining <= 7 ? 'text-red-600' : r.daysRemaining <= 30 ? 'text-yellow-600' : 'text-green-600'}`}>
+                          {Math.round(r.daysRemaining)} days left
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+              {/* Grace Period — sorted by most recently expired */}
+              {subData.restaurantStatuses.gracePeriod?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-yellow-700 mb-2">
+                    🟡 Grace Period ({subData.restaurantStatuses.gracePeriod.length})
+                  </h3>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {subData.restaurantStatuses.gracePeriod.map((r: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-sm border-b py-1.5">
+                        <span className="font-medium">{r.restaurantName}</span>
+                        <span className="text-xs text-muted-foreground">{r.packageName}</span>
+                        <span className="text-xs font-medium text-yellow-600">
+                          Expired {Math.abs(Math.round(r.daysRemaining))}d ago
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Expired — sorted by longest expired */}
+              {subData.restaurantStatuses.expired?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-red-700 mb-2">
+                    🔴 Expired ({subData.restaurantStatuses.expired.length})
+                  </h3>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {subData.restaurantStatuses.expired.map((r: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-sm border-b py-1.5 opacity-60">
+                        <span className="font-medium">{r.restaurantName}</span>
+                        <span className="text-xs text-muted-foreground">{r.packageName}</span>
+                        <span className="text-xs font-medium text-red-500">
+                          Expired {Math.abs(Math.round(r.daysRemaining))}d ago
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!subData.restaurantStatuses.active?.length && !subData.restaurantStatuses.gracePeriod?.length && !subData.restaurantStatuses.expired?.length && (
+                <p className="text-muted-foreground text-center py-4">No subscription data available.</p>
+              )}
             </div>
           </div>
         )}
