@@ -114,8 +114,10 @@ export async function governanceRoutes(app: FastifyInstance, di: GovDI) {
     const rp = getRPConfig();
     const user = req.user!;
     const existing = await db.query.superAdminCredentials.findFirst({ where: (c: any, { eq }: any) => eq(c.userId, user.id) });
+    const userIdBytes = new TextEncoder().encode(user.id);
     const options = await generateRegistrationOptions({
       rpName: rp.rpName, rpID: rp.rpID,
+      userID: userIdBytes,
       userName: user.email,
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
