@@ -58,6 +58,10 @@ export default function AdminPage() {
             <h3 className="text-lg font-semibold">🔐 Subscription Requests</h3>
             <p className="mt-2 text-sm text-muted-foreground">Approve or reject pending subscription requests</p>
           </a>
+          <a href="/admin/payments" className="rounded-xl border bg-card p-6 hover:border-brand-300 transition-colors">
+            <h3 className="text-lg font-semibold">💰 Payment Verification</h3>
+            <p className="mt-2 text-sm text-muted-foreground">Verify or reject subscription payment proofs</p>
+          </a>
         </div>
       </div>
     </DashboardLayout>
