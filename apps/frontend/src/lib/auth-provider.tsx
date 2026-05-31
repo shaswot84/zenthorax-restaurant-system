@@ -78,6 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin === 'http://localhost:3000' ? 'http://localhost:3000' : 'https://zenthorax-restaurant-system-frontend.vercel.app'}/auth/callback`,
+        queryParams: {
+          prompt: 'select_account',   // Always ask which Google account to use
+          access_type: 'offline',     // Get refresh token
+        },
       },
     });
   }
