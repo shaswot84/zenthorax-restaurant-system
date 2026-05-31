@@ -134,8 +134,29 @@ export default function QRMenuPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-10 border-b bg-white px-4 py-3 shadow-sm">
-        <h1 className="text-lg font-bold">{tableData?.restaurantName}</h1>
-        <p className="text-xs text-muted-foreground">Table: {tableData?.tableNumber}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold">{tableData?.restaurantName}</h1>
+            <p className="text-xs text-muted-foreground">Table: {tableData?.tableNumber}</p>
+          </div>
+          {/* Bill Download — top right */}
+          {billStatus && (
+            <a
+              href={billStatus === 'paid' ? `/bill/${billId || tableData?.sessionToken}` : undefined}
+              target={billStatus === 'paid' ? '_blank' : undefined}
+              rel={billStatus === 'paid' ? 'noopener' : undefined}
+              onClick={e => { if (billStatus !== 'paid') e.preventDefault(); }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                billStatus === 'paid'
+                  ? 'bg-green-500 text-white hover:bg-green-600'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+              aria-disabled={billStatus !== 'paid'}
+            >
+              {billStatus === 'paid' ? '📥 Download Bill' : '📥 Download Bill'}
+            </a>
+          )}
+        </div>
       </header>
 
       <div className="sticky top-[57px] z-10 border-b bg-white px-2 py-2 overflow-x-auto">
@@ -176,10 +197,7 @@ export default function QRMenuPage() {
               {billStatus === 'bill_requested' && '📋 Bill Requested — Waiting for restaurant confirmation'}
               {billStatus === 'unpaid' && '📋 Bill Pending Payment'}
               {billStatus === 'paid' && (
-                <div>
-                  <p className="font-bold mb-1">✅ Payment Confirmed!</p>
-                  <a href={`/bill/${billId || tableData?.sessionToken}`} target="_blank" rel="noopener" className="inline-block rounded bg-green-500 px-3 py-1 text-xs font-semibold text-white">📥 View & Print Bill</a>
-                </div>
+                <p className="font-bold">✅ Payment Confirmed — Thank you!</p>
               )}
             </div>
           )}
