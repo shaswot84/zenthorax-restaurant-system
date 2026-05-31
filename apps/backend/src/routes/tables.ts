@@ -192,4 +192,18 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     );
     return reply.send({ success: true });
   });
+
+  // ---------------------------------------------------------------------------
+  // PATCH /api/restaurants/:id/tables/:tableId/reactivate — Reactivate table
+  // ---------------------------------------------------------------------------
+  app.patch('/api/restaurants/:id/tables/:tableId/reactivate', { preHandler: managerOnly }, async (req, reply) => {
+    const { id, tableId } = req.params as { id: string; tableId: string };
+    if (!(await verifyOwnership(id, req.user!.id))) {
+      return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
+    }
+    await db.update(tables).set({ isActive: true }).where(
+      and(eq(tables.id, tableId) as any, eq(tables.restaurantId, id) as any) as any,
+    );
+    return reply.send({ success: true });
+  });
 }

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-provider';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { apiGet, apiPost, apiDelete } from '@/lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 
 interface TableData { id: string; tableNumber: string; tableCode: string; qrUrl: string; isActive: boolean; sessions: any[]; }
 
@@ -41,6 +41,12 @@ export default function TablesPage() {
   async function removeTable(tableId: string) {
     if (!restaurant || !confirm('Deactivate this table?')) return;
     await apiDelete(`/api/restaurants/${restaurant.id}/tables/${tableId}`);
+    load();
+  }
+
+  async function reactivateTable(tableId: string) {
+    if (!restaurant) return;
+    await apiPatch(`/api/restaurants/${restaurant.id}/tables/${tableId}/reactivate`);
     load();
   }
 
@@ -102,12 +108,15 @@ export default function TablesPage() {
                       </div>
                     </div>
                   )}
-                  <button
-                    onClick={() => removeTable(table.id)}
-                    className="text-xs text-red-400 hover:text-red-600"
-                  >
-                    {table.isActive ? 'Deactivate' : 'Remove'}
-                  </button>
+                  {table.isActive ? (
+                    <button onClick={() => removeTable(table.id)} className="text-xs text-red-400 hover:text-red-600">
+                      Deactivate
+                    </button>
+                  ) : (
+                    <button onClick={() => reactivateTable(table.id)} className="text-xs text-green-500 hover:text-green-700">
+                      Reactivate
+                    </button>
+                  )}
                 </div>
               </div>
               <p className="mt-2 text-xs text-muted-foreground truncate">{table.qrUrl}</p>
