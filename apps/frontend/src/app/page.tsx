@@ -35,6 +35,7 @@ export default function LandingPage() {
 
   function handleGetStarted(packageKey: string) {
     localStorage.setItem('zenthorax-package', packageKey);
+    localStorage.setItem('zenthorax-role', 'restaurant_manager');
     router.push('/login');
   }
 

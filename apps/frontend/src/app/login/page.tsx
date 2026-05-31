@@ -14,6 +14,11 @@ export default function LoginPage() {
     }
   }, [user, isLoading, router]);
 
+  function handleSignIn() {
+    localStorage.setItem('zenthorax-role', 'restaurant_manager');
+    signInWithGoogle();
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md rounded-xl border bg-white p-8 shadow-sm">
@@ -26,7 +31,7 @@ export default function LoginPage() {
 
         <div className="mt-8">
           <button
-            onClick={signInWithGoogle}
+            onClick={handleSignIn}
             disabled={isLoading}
             className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
           >

@@ -61,7 +61,9 @@ export default function AuthCallbackPage() {
       if (!cancelled && profileRes.success && profileRes.data) {
         const { role, restaurant } = profileRes.data;
         const isAdminLogin = localStorage.getItem('zenthorax-admin-login') === '1';
+        const chosenRole = localStorage.getItem('zenthorax-role');
         localStorage.removeItem('zenthorax-admin-login');
+        localStorage.removeItem('zenthorax-role');
 
         if (isAdminLogin && role !== 'super_admin') {
           setError('This account does not have super admin privileges.');
@@ -73,6 +75,18 @@ export default function AuthCallbackPage() {
           return;
         }
 
+        // Role was pre-selected (from landing page or kitchen login) — skip role selection
+        if (chosenRole === 'kitchen_staff') {
+          router.push('/kitchen');
+          return;
+        }
+        if (chosenRole === 'restaurant_manager') {
+          if (restaurant) router.push('/dashboard');
+          else router.push('/onboarding');
+          return;
+        }
+
+        // No role pre-selected — use the user's actual role from DB
         switch (role) {
           case 'super_admin':
             router.push('/admin');
@@ -83,7 +97,7 @@ export default function AuthCallbackPage() {
           case 'restaurant_manager':
           default:
             if (restaurant) router.push('/dashboard');
-            else router.push('/onboarding/role');
+            else router.push('/onboarding');
             break;
         }
       }

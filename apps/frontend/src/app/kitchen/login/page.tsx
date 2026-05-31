@@ -12,6 +12,11 @@ export default function KitchenLoginPage() {
     if (!isLoading && user) router.push('/kitchen');
   }, [user, isLoading, router]);
 
+  function handleSignIn() {
+    localStorage.setItem('zenthorax-role', 'kitchen_staff');
+    signInWithGoogle();
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-amber-50 p-4">
       <div className="w-full max-w-md rounded-xl border border-amber-200 bg-white p-8 shadow-lg">
@@ -25,7 +30,7 @@ export default function KitchenLoginPage() {
 
         <div className="mt-8">
           <button
-            onClick={signInWithGoogle}
+            onClick={handleSignIn}
             disabled={isLoading}
             className="flex w-full items-center justify-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 shadow-sm hover:bg-amber-100 transition-colors disabled:opacity-50"
           >
@@ -39,9 +44,6 @@ export default function KitchenLoginPage() {
           </button>
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Restaurant owner? <a href="/login" className="text-brand-500 hover:underline">Sign in here</a>
-        </p>
       </div>
     </div>
   );
