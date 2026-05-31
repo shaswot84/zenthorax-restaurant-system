@@ -36,8 +36,17 @@ export default function KitchenPage() {
     if (user) {
       apiGet<any>('/api/auth/me').then(r => {
         if (r.success) {
-          setRestaurant(r.data.restaurant);
-          setStaffRecord(r.data.kitchenStaff);
+          const staff = r.data.kitchenStaff;
+          setStaffRecord(staff);
+          // If approved kitchen staff, fetch restaurant by staff's restaurantId
+          if (staff?.isApproved && staff?.restaurantId) {
+            apiGet<any>(`/api/restaurants/${staff.restaurantId}/menu`).then(() => {
+              // Just use the restaurant ID directly from staff record
+              setRestaurant({ id: staff.restaurantId });
+            });
+          } else {
+            setRestaurant(r.data.restaurant);
+          }
         }
       }).finally(() => setLoading(false));
     }
