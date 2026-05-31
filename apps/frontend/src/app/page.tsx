@@ -59,6 +59,10 @@ export default function LandingPage() {
             >
               Get Started — One-time NRS 500 registration
             </a>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Already have a restaurant?{' '}
+              <a href="/login" className="text-brand-500 hover:underline font-medium">Sign in</a>
+            </p>
           </div>
         </div>
       </section>

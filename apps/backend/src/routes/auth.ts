@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Env } from '../config/env';
 import type { Database } from '@zenthorax/database';
-import { users } from '@zenthorax/database/schema';
+import { users, kitchenStaff as kitchenStaffTable } from '@zenthorax/database/schema';
 import { createAuthMiddleware } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
 
@@ -106,18 +106,50 @@ export async function authRoutes(app: FastifyInstance, di: AuthDI) {
   });
 
   // ---------------------------------------------------------------------------
-  // POST /api/auth/kitchen/request-access — Kitchen staff requests restaurant access
-  // (Phase 7 — stub for now)
+  // POST /api/auth/kitchen/request-access — Kitchen staff requests access
   // ---------------------------------------------------------------------------
   app.post(
     '/api/auth/kitchen/request-access',
     { preHandler: auth },
     async (req, reply) => {
-      // TODO: Implement in Phase 7
-      return reply.status(501).send({
-        success: false,
-        error: { code: 'NOT_IMPLEMENTED', message: 'Coming in Phase 7' },
+      const user = req.user!;
+      const { restaurantId } = req.body as { restaurantId?: string };
+
+      if (!restaurantId) {
+        return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'restaurantId is required.' } });
+      }
+
+      // Check restaurant exists
+      const restaurant = await db.query.restaurants.findFirst({
+        where: (r: any, { eq }: any) => eq(r.id, restaurantId),
       });
+      if (!restaurant) {
+        return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND', message: 'Restaurant not found.' } });
+      }
+
+      // Check if already requested
+      const existing = await db.query.kitchenStaff.findFirst({
+        where: (ks: any, { eq, and }: any) =>
+          and(eq(ks.userId, user.id), eq(ks.restaurantId, restaurantId)),
+      });
+
+      if (existing) {
+        return reply.send({
+          success: true,
+          data: { id: existing.id, isApproved: existing.isApproved, status: existing.isApproved ? 'approved' : 'pending' },
+        });
+      }
+
+      // Create request
+      const newId = crypto.randomUUID();
+      await db.insert(kitchenStaffTable).values({
+        id: newId,
+        userId: user.id,
+        restaurantId,
+        isApproved: false,
+      });
+
+      return reply.status(201).send({ success: true, data: { id: newId, isApproved: false, status: 'pending' } });
     },
   );
 }
