@@ -20,6 +20,8 @@ export default function QRMenuPage() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [lastOrder, setLastOrder] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [billStatus, setBillStatus] = useState<string | null>(null);
+  const [requestingBill, setRequestingBill] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +63,20 @@ export default function QRMenuPage() {
   function updateQty(id: string, qty: number) {
     if (qty <= 0) setCart(prev => prev.filter(i => i.menuItemId !== id));
     else setCart(prev => prev.map(i => i.menuItemId === id ? { ...i, quantity: qty } : i));
+  }
+
+  async function requestBill() {
+    if (!tableData) return;
+    setRequestingBill(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/bills/request`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken: tableData.sessionToken }),
+      });
+      const json = await res.json();
+      if (json.success) setBillStatus(json.data.status);
+    } catch {}
+    setRequestingBill(false);
   }
 
   async function placeOrder() {
@@ -233,6 +249,19 @@ export default function QRMenuPage() {
               className="w-full rounded-lg bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600 disabled:opacity-50">
               {placingOrder ? 'Placing Order...' : `Place Order — NRS ${cartTotal}`}
             </button>
+            {lastOrder && !billStatus && (
+              <button onClick={requestBill} disabled={requestingBill}
+                className="mt-2 w-full rounded-lg border-2 border-brand-500 py-3 text-sm font-bold text-brand-600 hover:bg-brand-50 disabled:opacity-50">
+                {requestingBill ? 'Requesting Bill...' : '🧾 Request Bill'}
+              </button>
+            )}
+            {billStatus && (
+              <div className="mt-2 rounded-lg bg-blue-50 border border-blue-200 p-3 text-center text-sm text-blue-700 font-medium">
+                {billStatus === 'bill_requested' && '📋 Bill Requested — Waiting for confirmation'}
+                {billStatus === 'unpaid' && '📋 Bill Pending Payment'}
+                {billStatus === 'paid' && '✅ Payment Confirmed — Thank you!'}
+              </div>
+            )}
           </div>
         </div>
       )}
