@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 interface MenuItem { id: string; categoryId: string; name: string; description: string | null; price: number; imageUrl: string | null; isAvailable: boolean; }
 interface Category { id: string; name: string; sortOrder: number; items: MenuItem[]; }
@@ -104,25 +105,23 @@ export default function QRMenuPage() {
     setRequestingBill(false);
   }
 
-  // Poll bill status — updates when restaurant marks as paid
+  // Supabase Realtime — instant bill status updates
   useEffect(() => {
-    if (!billStatus || billStatus === 'paid' || !tableData) return;
-    const token = billId || tableData.sessionToken; // Prefer bill ID, fallback to session
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/api/bills/${token}/public`);
-        const json = await res.json();
-        if (json.success && json.data) {
-          const newStatus = json.data.status;
-          if (newStatus !== billStatus) {
-            setBillStatus(newStatus);
-            if (newStatus === 'paid') clearInterval(interval);
-          }
+    if (!billId || billStatus === 'paid' || !tableData) return;
+    const channel = supabase
+      .channel('bill-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'bills',
+        filter: `id=eq.${billId}`,
+      }, (payload: any) => {
+        if (payload.new?.status === 'paid') {
+          setBillStatus('paid');
+          supabase.removeChannel(channel);
         }
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [billStatus, billId, tableData]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [billId, billStatus, tableData]);
 
   const filteredItems = activeCat === 'all' ? categories.flatMap(c => c.items) : (categories.find(c => c.id === activeCat)?.items ?? []);
 
