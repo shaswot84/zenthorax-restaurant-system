@@ -18,15 +18,36 @@ export default function BillPage() {
   const [loading, setLoading] = useState(true);
   const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
+  const [fetchError, setFetchError] = useState(false);
+
   useEffect(() => {
-    fetch(`${API}/api/bills/${params.token}/public`)
-      .then(r => r.json())
-      .then(json => { if (json.success) setBill(json.data); })
-      .finally(() => setLoading(false));
+    // Try both the API env var and a relative path
+    const urls = [
+      `${API}/api/bills/${params.token}/public`,
+      `/api/bills/${params.token}/public`,
+    ];
+    async function tryFetch() {
+      for (const url of urls) {
+        try {
+          const r = await fetch(url);
+          const json = await r.json();
+          if (json.success) { setBill(json.data); return; }
+        } catch {}
+      }
+      setFetchError(true);
+    }
+    tryFetch().finally(() => setLoading(false));
   }, [params.token]);
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" /></div>;
-  if (!bill) return <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Bill not found.</p></div>;
+  if (fetchError || !bill) return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="text-center">
+        <p className="text-muted-foreground text-lg mb-2">Bill not found</p>
+        <p className="text-xs text-muted-foreground">The bill may not be available yet or the session has expired.</p>
+      </div>
+    </div>
+  );
 
   const items = bill.orders?.flatMap(o => o.items) ?? [];
 
