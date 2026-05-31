@@ -71,123 +71,124 @@ export default function AdminAnalyticsPage() {
 
   return (
     <DashboardLayout variant="admin">
-      <div>
-        <h1 className="text-2xl font-bold">Platform Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-1">Subscription-based metrics</p>
+      <div className="max-w-full overflow-x-hidden" style={{ maxWidth: '100%' }}>
+        <h1 className="text-xl sm:text-2xl font-bold">Platform Analytics</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Subscription-based metrics</p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-6">
+        <div className="mt-4 grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 max-w-full">
           {[
-            { label: 'Total Restaurants', value: subData?.totalRestaurants ?? 0, color: 'text-gray-700' },
-            { label: 'Active Subs', value: subData?.activeSubscriptions ?? 0, color: 'text-green-600' },
-            { label: 'Grace Period', value: subData?.gracePeriod ?? 0, color: 'text-yellow-600' },
+            { label: 'Restaurants', value: subData?.totalRestaurants ?? 0, color: 'text-gray-700' },
+            { label: 'Active', value: subData?.activeSubscriptions ?? 0, color: 'text-green-600' },
+            { label: 'Grace', value: subData?.gracePeriod ?? 0, color: 'text-yellow-600' },
             { label: 'Expired', value: subData?.expired ?? 0, color: 'text-red-600' },
-            { label: 'Collected Revenue', value: `NRS ${collectedRevenue.toLocaleString()}`, color: 'text-green-600' },
-            { label: 'Active Sub Value', value: `NRS ${totalSubValue.toLocaleString()}`, color: 'text-brand-600' },
+            { label: 'Collected', value: `NRS ${collectedRevenue.toLocaleString()}`, color: 'text-green-600' },
+            { label: 'Sub Value', value: `NRS ${totalSubValue.toLocaleString()}`, color: 'text-brand-600' },
           ].map(k => (
-            <div key={k.label} className="rounded-xl border bg-card p-4">
-              <p className="text-xs text-muted-foreground">{k.label}</p>
-              <p className={`mt-1 text-xl font-bold ${k.color}`}>{k.value}</p>
+            <div key={k.label} className="rounded-lg border bg-card px-2 py-2 sm:p-3">
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground">{k.label}</p>
+              <p className={`mt-0.5 text-sm sm:text-lg font-bold ${k.color} truncate`}>{k.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Subscription by Package</h2>
-            {pkg.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No data yet.</p>
-            ) : (
-              <div className="h-[280px]">
-                <Bar data={packageChart} options={{ responsive: true, maintainAspectRatio: false }} />
-              </div>
-            )}
-          </div>
+        <div className="mt-3 rounded-lg border bg-card p-2 sm:p-3 max-w-full">
+          <h2 className="text-xs sm:text-sm font-semibold mb-1">Subscription by Package</h2>
+          {pkg.length === 0 ? (
+            <p className="text-muted-foreground text-center py-6 text-xs">No data yet.</p>
+          ) : (
+            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(200px, 35vh)' }}>
+              <Bar data={packageChart} options={{
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 5, right: 5, bottom: 0, left: 0 } },
+                scales: { x: { ticks: { font: { size: 8 } } }, y: { ticks: { font: { size: 8 } } } },
+              }} />
+            </div>
+          )}
         </div>
 
-        {/* Restaurant Subscription Status — Sorted by remaining periods */}
+        {/* Restaurant Subscription Status */}
         {subData?.restaurantStatuses && (
-          <div className="mt-6 rounded-xl border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Restaurant Subscription Status</h2>
-            <div className="space-y-4">
-              {/* Active — sorted by soonest expiring */}
+          <div className="mt-3 rounded-lg border bg-card p-2 sm:p-3 max-w-full">
+            <h2 className="text-xs sm:text-sm font-semibold mb-1">Subscription Status</h2>
+            <div className="space-y-2 max-w-full">
               {subData.restaurantStatuses.active?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-green-700 mb-2">
+                <details open>
+                  <summary className="text-[11px] sm:text-xs font-semibold text-green-700 cursor-pointer">
                     🟢 Active ({subData.restaurantStatuses.active.length})
-                  </h3>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                  </summary>
+                  <div className="space-y-0.5 max-h-36 overflow-y-auto mt-1">
                     {subData.restaurantStatuses.active.map((r: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center text-sm border-b py-1.5">
-                        <span className="font-medium">{r.restaurantName}</span>
-                        <span className="text-xs text-muted-foreground">{r.packageName}</span>
-                        <span className={`text-xs font-medium ${r.daysRemaining <= 7 ? 'text-red-600' : r.daysRemaining <= 30 ? 'text-yellow-600' : 'text-green-600'}`}>
-                          {Math.round(r.daysRemaining)} days left
+                      <div key={i} className="flex justify-between items-center text-[10px] sm:text-xs border-b py-1">
+                        <span className="font-medium truncate max-w-[100px] sm:max-w-[180px]">{r.restaurantName}</span>
+                        <span className="text-muted-foreground hidden sm:inline">{r.packageName}</span>
+                        <span className={`font-medium ${r.daysRemaining <= 7 ? 'text-red-600' : r.daysRemaining <= 30 ? 'text-yellow-600' : 'text-green-600'}`}>
+                          {Math.round(r.daysRemaining)}d
                         </span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </details>
               )}
-              {/* Grace Period — sorted by most recently expired */}
               {subData.restaurantStatuses.gracePeriod?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-yellow-700 mb-2">
+                <details>
+                  <summary className="text-[11px] sm:text-xs font-semibold text-yellow-700 cursor-pointer">
                     🟡 Grace Period ({subData.restaurantStatuses.gracePeriod.length})
-                  </h3>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                  </summary>
+                  <div className="space-y-0.5 max-h-36 overflow-y-auto mt-1">
                     {subData.restaurantStatuses.gracePeriod.map((r: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center text-sm border-b py-1.5">
-                        <span className="font-medium">{r.restaurantName}</span>
-                        <span className="text-xs text-muted-foreground">{r.packageName}</span>
-                        <span className="text-xs font-medium text-yellow-600">
-                          Expired {Math.abs(Math.round(r.daysRemaining))}d ago
-                        </span>
+                      <div key={i} className="flex justify-between items-center text-[10px] sm:text-xs border-b py-1">
+                        <span className="font-medium truncate max-w-[100px] sm:max-w-[180px]">{r.restaurantName}</span>
+                        <span className="text-muted-foreground hidden sm:inline">{r.packageName}</span>
+                        <span className="font-medium text-yellow-600">{Math.abs(Math.round(r.daysRemaining))}d ago</span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </details>
               )}
-              {/* Expired — sorted by longest expired */}
               {subData.restaurantStatuses.expired?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-red-700 mb-2">
+                <details>
+                  <summary className="text-[11px] sm:text-xs font-semibold text-red-700 cursor-pointer">
                     🔴 Expired ({subData.restaurantStatuses.expired.length})
-                  </h3>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                  </summary>
+                  <div className="space-y-0.5 max-h-36 overflow-y-auto mt-1">
                     {subData.restaurantStatuses.expired.map((r: any, i: number) => (
-                      <div key={i} className="flex justify-between items-center text-sm border-b py-1.5 opacity-60">
-                        <span className="font-medium">{r.restaurantName}</span>
-                        <span className="text-xs text-muted-foreground">{r.packageName}</span>
-                        <span className="text-xs font-medium text-red-500">
-                          Expired {Math.abs(Math.round(r.daysRemaining))}d ago
-                        </span>
+                      <div key={i} className="flex justify-between items-center text-[10px] sm:text-xs border-b py-1 opacity-50">
+                        <span className="font-medium truncate max-w-[100px] sm:max-w-[180px]">{r.restaurantName}</span>
+                        <span className="text-muted-foreground hidden sm:inline">{r.packageName}</span>
+                        <span className="font-medium text-red-500">{Math.abs(Math.round(r.daysRemaining))}d</span>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-              {!subData.restaurantStatuses.active?.length && !subData.restaurantStatuses.gracePeriod?.length && !subData.restaurantStatuses.expired?.length && (
-                <p className="text-muted-foreground text-center py-4">No subscription data available.</p>
+                </details>
               )}
             </div>
           </div>
         )}
 
-        <div className="mt-6 rounded-xl border bg-card p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Subscription Revenue Trend</h2>
-            <select value={revPlan} onChange={e => setRevPlan(e.target.value)} className="rounded border px-2 py-1 text-xs">
-              <option value="all">All Plans</option>
+        {/* Revenue Trend */}
+        <div className="mt-3 rounded-lg border bg-card p-2 sm:p-3 max-w-full">
+          <div className="flex flex-wrap justify-between items-center gap-2 mb-1">
+            <h2 className="text-xs sm:text-sm font-semibold">Revenue Trend</h2>
+            <select value={revPlan} onChange={e => setRevPlan(e.target.value)} className="rounded border px-1.5 py-0.5 text-[9px] sm:text-[10px]">
+              <option value="all">All</option>
               <option value="1">Monthly</option>
               <option value="3">3-Month</option>
               <option value="6">6-Month</option>
             </select>
           </div>
           {revData.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No revenue data yet.</p>
+            <p className="text-muted-foreground text-center py-6 text-xs">No data yet.</p>
           ) : (
-            <div className="h-[300px]">
-              <Line data={revenueTrendChart} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(200px, 35vh)' }}>
+              <Line data={revenueTrendChart} options={{
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 5, right: 5, bottom: 0, left: 0 } },
+                plugins: { legend: { display: false } },
+                scales: {
+                  x: { ticks: { maxTicksLimit: 5, font: { size: 8 } } },
+                  y: { ticks: { maxTicksLimit: 5, font: { size: 8 }, callback: (v: any) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v } },
+                },
+              }} />
             </div>
           )}
         </div>
