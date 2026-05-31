@@ -30,6 +30,8 @@ export default function AdminRestaurantDetailPage() {
     setActionLoading(action);
     if (action === 'approve' && subId) {
       await apiPost(`/api/admin/subscriptions/${subId}/approve`);
+    } else if (action === 'reject') {
+      await apiPost(`/api/admin/restaurants/${params.id}/reject`, { reason: 'Rejected by admin' });
     } else if (action === 'suspend') {
       await apiPost(`/api/admin/restaurants/${params.id}/suspend`);
     } else if (action === 'reactivate') {
@@ -109,7 +111,11 @@ export default function AdminRestaurantDetailPage() {
               <div className="mt-4 flex gap-3">
                 <button onClick={() => handleAction('approve', sub.id)} disabled={!!actionLoading}
                   className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-50">
-                  {actionLoading === 'approve' ? 'Approving...' : 'Approve Subscription'}
+                  {actionLoading === 'approve' ? 'Approving...' : 'Approve'}
+                </button>
+                <button onClick={() => { if (confirm('Reject this restaurant?')) handleAction('reject'); }} disabled={!!actionLoading}
+                  className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                  Reject
                 </button>
               </div>
             )}

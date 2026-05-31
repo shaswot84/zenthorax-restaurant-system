@@ -102,6 +102,12 @@ export default function KitchenPage() {
     loadTickets();
   }
 
+  async function cancelOrder(orderId: string) {
+    if (!restaurant || !confirm('Cancel this order? It will be excluded from the bill.')) return;
+    await apiPatch(`/api/restaurants/${restaurant.id}/kitchen/orders/${orderId}/cancel`);
+    loadTickets();
+  }
+
   function getStatusColor(status: string) {
     if (status === 'received') return 'bg-blue-100 text-blue-700 border-blue-300';
     if (status === 'preparing') return 'bg-yellow-100 text-yellow-700 border-yellow-300';
@@ -233,21 +239,36 @@ export default function KitchenPage() {
                       <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(order.status)}`}>
                         {order.status.toUpperCase()}
                       </span>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         {order.status === 'received' && (
-                          <button onClick={() => updateStatus(order.id, 'preparing')}
-                            className="rounded bg-yellow-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-yellow-600">
-                            Start Preparing
-                          </button>
+                          <>
+                            <button onClick={() => updateStatus(order.id, 'preparing')}
+                              className="rounded bg-yellow-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-yellow-600">
+                              Start Preparing
+                            </button>
+                            <button onClick={() => cancelOrder(order.id)}
+                              className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-200">
+                              Cancel
+                            </button>
+                          </>
                         )}
                         {order.status === 'preparing' && (
-                          <button onClick={() => updateStatus(order.id, 'ready')}
-                            className="rounded bg-green-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-green-600">
-                            Mark Ready
-                          </button>
+                          <>
+                            <button onClick={() => updateStatus(order.id, 'ready')}
+                              className="rounded bg-green-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-green-600">
+                              Mark Ready
+                            </button>
+                            <button onClick={() => cancelOrder(order.id)}
+                              className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-200">
+                              Cancel
+                            </button>
+                          </>
                         )}
                         {order.status === 'ready' && (
                           <span className="text-xs text-green-600 font-medium">✓ Ready for pickup</span>
+                        )}
+                        {order.status === 'cancelled' && (
+                          <span className="text-xs text-red-500 font-medium line-through">Cancelled</span>
                         )}
                       </div>
                     </div>

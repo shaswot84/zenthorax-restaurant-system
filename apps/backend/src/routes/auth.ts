@@ -90,6 +90,18 @@ export async function authRoutes(app: FastifyInstance, di: AuthDI) {
       });
     }
 
+    // Enforce exclusive roles: one Google account = one role
+    // Check if this email exists with a different role
+    const emailExisting = await db.query.users.findFirst({
+      where: (u: any, { eq }: any) => eq(u.email, supabaseUser.email),
+    });
+    if (emailExisting && emailExisting.role !== 'restaurant_manager') {
+      return reply.status(409).send({
+        success: false,
+        error: { code: 'ROLE_CONFLICT', message: `This account is already registered as ${emailExisting.role}. Each Google account can only have one role.` },
+      });
+    }
+
     // Create user record (fallback if trigger didn't fire)
     await db
       .insert(users)

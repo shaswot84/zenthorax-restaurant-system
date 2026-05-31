@@ -2,8 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import type { Database } from '@zenthorax/database';
 import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
-import { orders, kitchenStaff as kitchenStaffTable, restaurants as restaurantsTable } from '@zenthorax/database/schema';
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { orders, kitchenStaff as kitchenStaffTable, restaurants as restaurantsTable, bills } from '@zenthorax/database/schema';
+import { eq, and, desc, asc, inArray, ne } from 'drizzle-orm';
 import { ORDER_STATUSES } from '@zenthorax/shared';
 
 interface KitchenDI {
@@ -84,6 +84,41 @@ export async function kitchenRoutes(app: FastifyInstance, di: KitchenDI) {
       and(eq(orders.id, orderId) as any, eq(orders.restaurantId, id) as any) as any,
     );
     return reply.send({ success: true, data: { status } });
+  });
+
+  // ---------------------------------------------------------------------------
+  // PATCH /api/restaurants/:id/kitchen/orders/:orderId/cancel — Cancel order
+  // ---------------------------------------------------------------------------
+  app.patch('/api/restaurants/:id/kitchen/orders/:orderId/cancel', { preHandler: auth }, async (req, reply) => {
+    const { id, orderId } = req.params as { id: string; orderId: string };
+    if (!(await isStaff(id, req.user!.id))) {
+      return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
+    }
+    await db.update(orders).set({ status: 'cancelled' as any }).where(
+      and(eq(orders.id, orderId) as any, eq(orders.restaurantId, id) as any) as any,
+    );
+
+    // Recalculate any existing bill for this order's session to exclude cancelled items
+    const order = await db.query.orders.findFirst({ where: (o: any, { eq }: any) => eq(o.id, orderId) });
+    if (order) {
+      const bill = await db.query.bills.findFirst({
+        where: (b: any, { eq, and, inArray: ia }: any) =>
+          and(eq(b.sessionId, order.sessionId), ia(b.status, ['bill_requested', 'unpaid'] as any)),
+      });
+      if (bill) {
+        // Recalculate subtotal from non-cancelled orders
+        const activeOrders = await db.query.orders.findMany({
+          where: (o: any, { eq, and, ne }: any) =>
+            and(eq(o.sessionId, order.sessionId), ne(o.status, 'cancelled' as any)),
+          with: { items: true },
+        });
+        const newSubtotal = activeOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.totalPrice, 0), 0);
+        const newTotal = newSubtotal - bill.discount + bill.vat + bill.serviceCharge + bill.tax;
+        await db.update(bills).set({ subtotal: newSubtotal, total: newTotal } as any).where(eq(bills.id, bill.id) as any);
+      }
+    }
+
+    return reply.send({ success: true, data: { status: 'cancelled' } });
   });
 
   // -------------------------------------------------------------------------

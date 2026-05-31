@@ -63,13 +63,18 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
       return reply.send({ success: true, data: { id: existingBill.id, status: existingBill.status } });
     }
 
-    // Calculate totals
+    // Calculate totals — EXCLUDE cancelled orders
+    const activeOrders = sessionOrders.filter(o => o.status !== 'cancelled');
+    if (activeOrders.length === 0) {
+      return reply.status(400).send({ success: false, error: { code: 'NO_ORDERS', message: 'All orders have been cancelled.' } });
+    }
+
     const restaurant = await db.query.restaurants.findFirst({
-      where: (r: any, { eq }: any) => eq(r.id, sessionOrders[0]!.restaurantId),
+      where: (r: any, { eq }: any) => eq(r.id, activeOrders[0]!.restaurantId),
     });
     if (!restaurant) return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND' } });
 
-    const subtotal = sessionOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.totalPrice, 0), 0);
+    const subtotal = activeOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.totalPrice, 0), 0);
     const discount = 0;
     const afterDiscount = subtotal - discount;
     const vat = Math.round(afterDiscount * (restaurant.vatPercentage / 100) * 100) / 100;

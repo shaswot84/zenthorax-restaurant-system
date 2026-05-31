@@ -219,6 +219,21 @@ export async function adminRoutes(app: FastifyInstance, di: AdminDI) {
   });
 
   // ---------------------------------------------------------------------------
+  // POST /api/admin/restaurants/:id/reject — Reject restaurant registration
+  // ---------------------------------------------------------------------------
+  app.post('/api/admin/restaurants/:id/reject', { preHandler: adminPreHandler }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { reason } = req.body as { reason?: string };
+
+    // Set restaurant to inactive and reject subscription
+    await db.update(restaurants).set({ status: 'inactive' as any }).where(eq(restaurants.id, id) as any);
+    await db.update(subscriptions).set({ status: 'rejected', rejectionReason: reason ?? null } as any)
+      .where(eq(subscriptions.restaurantId, id) as any);
+
+    return reply.send({ success: true, data: { status: 'rejected' } });
+  });
+
+  // ---------------------------------------------------------------------------
   // POST /api/admin/restaurants/:id/reactivate — Reactivate restaurant
   // ---------------------------------------------------------------------------
   app.post('/api/admin/restaurants/:id/reactivate', { preHandler: adminPreHandler }, async (req, reply) => {
