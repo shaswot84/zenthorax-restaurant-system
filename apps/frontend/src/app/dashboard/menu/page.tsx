@@ -133,7 +133,7 @@ export default function MenuPage() {
     } else {
       await apiPost(`/api/restaurants/${restaurant.id}/menu-items`, body);
     }
-    setShowItemForm(false); setEditingItem(null);
+    setShowItemForm(false); setEditingItem(null); setUploading(false);
     load();
   }
   async function toggleItem(item: MenuItem) {
@@ -233,7 +233,7 @@ export default function MenuPage() {
 
       {/* Item Form Modal */}
       {showItemForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto" onClick={() => setShowItemForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 overflow-y-auto" onClick={() => { setShowItemForm(false); setUploading(false); }}>
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl m-4" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-bold">{editingItem ? 'Edit Item' : 'Add Item'}</h2>
             <div className="mt-3 space-y-3">
@@ -279,7 +279,7 @@ export default function MenuPage() {
               </label>
             </div>
             <div className="mt-4 flex gap-2 justify-end">
-              <button onClick={() => setShowItemForm(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button>
+              <button onClick={() => { setShowItemForm(false); setUploading(false); }} className="rounded-lg border px-4 py-2 text-sm">Cancel</button>
               <button onClick={saveItem} disabled={uploading} className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-50">
                 {uploading ? 'Uploading...' : 'Save'}
               </button>
