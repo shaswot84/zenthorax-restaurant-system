@@ -67,7 +67,7 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout variant="restaurant">
-      <div className="max-w-full overflow-x-hidden" style={{ maxWidth: '100%' }}>
+      <div className="w-full">
         <h1 className="text-xl sm:text-2xl font-bold">Analytics</h1>
 
         {/* KPI Cards — responsive grid */}
@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
           {revenue.length === 0 ? (
             <p className="text-muted-foreground text-center py-8 text-xs">No revenue data yet.</p>
           ) : (
-            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(220px, 40vh)' }}>
+            <div className="w-full overflow-hidden" style={{ height: 'min(220px, 40vh)' }}>
               <Line data={revenueChart} options={{
                 responsive: true, maintainAspectRatio: false,
                 layout: { padding: { top: 5, right: 5, bottom: 0, left: 0 } },

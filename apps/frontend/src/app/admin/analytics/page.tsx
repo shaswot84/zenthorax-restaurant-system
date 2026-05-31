@@ -71,7 +71,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <DashboardLayout variant="admin">
-      <div className="max-w-full overflow-x-hidden" style={{ maxWidth: '100%' }}>
+      <div className="w-full">
         <h1 className="text-xl sm:text-2xl font-bold">Platform Analytics</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Subscription-based metrics</p>
 
@@ -96,7 +96,7 @@ export default function AdminAnalyticsPage() {
           {pkg.length === 0 ? (
             <p className="text-muted-foreground text-center py-6 text-xs">No data yet.</p>
           ) : (
-            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(200px, 35vh)' }}>
+            <div className="w-full overflow-hidden" style={{ height: 'min(200px, 35vh)' }}>
               <Bar data={packageChart} options={{
                 responsive: true, maintainAspectRatio: false,
                 layout: { padding: { top: 5, right: 5, bottom: 0, left: 0 } },
@@ -179,7 +179,7 @@ export default function AdminAnalyticsPage() {
           {revData.length === 0 ? (
             <p className="text-muted-foreground text-center py-6 text-xs">No data yet.</p>
           ) : (
-            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(200px, 35vh)' }}>
+            <div className="w-full overflow-hidden" style={{ height: 'min(200px, 35vh)' }}>
               <Line data={revenueTrendChart} options={{
                 responsive: true, maintainAspectRatio: false,
                 layout: { padding: { top: 5, right: 5, bottom: 0, left: 0 } },

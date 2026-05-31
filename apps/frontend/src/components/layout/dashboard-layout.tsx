@@ -138,7 +138,7 @@ export function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <main className="flex-1">
+      <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Top bar (mobile) */}
         <div className="flex h-16 items-center border-b bg-white px-4 lg:hidden">
           <button
@@ -158,7 +158,7 @@ export function DashboardLayout({
           <span className="ml-3 font-semibold">Zenthorax</span>
         </div>
 
-        <div className="p-6">{children}</div>
+        <div className="p-4 sm:p-6 max-w-full overflow-x-hidden">{children}</div>
       </main>
     </div>
   );
