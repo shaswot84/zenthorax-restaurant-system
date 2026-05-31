@@ -22,6 +22,10 @@ export default function QRMenuPage() {
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [billStatus, setBillStatus] = useState<string | null>(null);
   const [requestingBill, setRequestingBill] = useState(false);
+  const [showBillForm, setShowBillForm] = useState(false);
+  const [custName, setCustName] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [billData, setBillData] = useState<any>(null);
 
   const load = useCallback(async () => {
     try {
@@ -66,15 +70,19 @@ export default function QRMenuPage() {
   }
 
   async function requestBill() {
-    if (!tableData) return;
+    if (!tableData || !custName.trim()) return;
     setRequestingBill(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/bills/request`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionToken: tableData.sessionToken }),
+        body: JSON.stringify({ sessionToken: tableData.sessionToken, customerName: custName.trim(), customerPhone: custPhone.trim() || undefined }),
       });
       const json = await res.json();
-      if (json.success) setBillStatus(json.data.status);
+      if (json.success) {
+        setBillData(json.data);
+        setBillStatus(json.data.status);
+        setShowBillForm(false);
+      }
     } catch {}
     setRequestingBill(false);
   }
@@ -249,17 +257,42 @@ export default function QRMenuPage() {
               className="w-full rounded-lg bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600 disabled:opacity-50">
               {placingOrder ? 'Placing Order...' : `Place Order — NRS ${cartTotal}`}
             </button>
-            {lastOrder && !billStatus && (
-              <button onClick={requestBill} disabled={requestingBill}
-                className="mt-2 w-full rounded-lg border-2 border-brand-500 py-3 text-sm font-bold text-brand-600 hover:bg-brand-50 disabled:opacity-50">
-                {requestingBill ? 'Requesting Bill...' : '🧾 Request Bill'}
+            {lastOrder && !billStatus && !showBillForm && (
+              <button onClick={() => setShowBillForm(true)}
+                className="mt-2 w-full rounded-lg border-2 border-brand-500 py-3 text-sm font-bold text-brand-600 hover:bg-brand-50">
+                🧾 Request Bill
               </button>
+            )}
+            {showBillForm && (
+              <div className="mt-2 rounded-lg border bg-gray-50 p-3">
+                <p className="text-sm font-semibold mb-2">Billing Details</p>
+                <input type="text" value={custName} onChange={e => setCustName(e.target.value)}
+                  placeholder="Your name *" className="w-full rounded border px-2 py-1.5 text-sm mb-2" />
+                <input type="text" value={custPhone} onChange={e => setCustPhone(e.target.value)}
+                  placeholder="Phone number (optional)" className="w-full rounded border px-2 py-1.5 text-sm mb-2" />
+                <div className="flex gap-2">
+                  <button onClick={() => setShowBillForm(false)} className="flex-1 rounded border py-1.5 text-xs">Cancel</button>
+                  <button onClick={requestBill} disabled={requestingBill || !custName.trim()}
+                    className="flex-1 rounded bg-brand-500 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                    {requestingBill ? 'Requesting...' : 'Send Request'}
+                  </button>
+                </div>
+              </div>
             )}
             {billStatus && (
               <div className="mt-2 rounded-lg bg-blue-50 border border-blue-200 p-3 text-center text-sm text-blue-700 font-medium">
                 {billStatus === 'bill_requested' && '📋 Bill Requested — Waiting for confirmation'}
                 {billStatus === 'unpaid' && '📋 Bill Pending Payment'}
-                {billStatus === 'paid' && '✅ Payment Confirmed — Thank you!'}
+                {billStatus === 'paid' && (
+                  <div>
+                    <p className="font-bold text-green-700 mb-2">✅ Payment Confirmed — Thank you!</p>
+                    <a href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/bills/${tableData?.sessionToken}/public`}
+                      target="_blank" rel="noopener"
+                      className="inline-block rounded bg-green-500 px-3 py-1 text-xs font-semibold text-white hover:bg-green-600">
+                      📥 Download Bill
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </div>

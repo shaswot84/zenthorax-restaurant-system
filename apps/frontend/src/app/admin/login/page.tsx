@@ -54,9 +54,6 @@ export default function AdminLoginPage() {
           </div>
         )}
 
-        <p className="mt-6 text-center text-xs text-gray-500">
-          Restaurant owners: <a href="/login" className="text-gray-400 hover:underline">sign in here</a>
-        </p>
       </div>
     </div>
   );

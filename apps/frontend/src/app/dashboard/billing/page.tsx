@@ -131,6 +131,7 @@ export default function BillingPage() {
                 <div>
                   <h2 className="text-lg font-bold">Bill for Table {selectedBill.table?.tableNumber}</h2>
                   <p className="text-sm text-muted-foreground">{new Date(selectedBill.createdAt).toLocaleString()}</p>
+                  {selectedBill.customerName && <p className="text-sm font-medium mt-1">👤 {selectedBill.customerName}{selectedBill.customerPhone ? ` · 📞 ${selectedBill.customerPhone}` : ''}</p>}
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
                   selectedBill.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
@@ -151,23 +152,23 @@ export default function BillingPage() {
               {selectedBill.status !== 'paid' && selectedBill.status !== 'cancelled' ? (
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div><label className="text-xs">Subtotal</label><p className="font-bold">NRS {selectedBill.subtotal?.toFixed(2)}</p></div>
-                  <div><label className="text-xs">Discount</label>
+                  <div><label className="text-xs">Discount (NRS)</label>
                     <input type="number" value={editDiscount} onChange={e => setEditDiscount(Number(e.target.value))}
                       className="w-full rounded border px-1 py-0.5 text-xs" /></div>
-                  <div><label className="text-xs">VAT</label>
+                  <div><label className="text-xs">VAT ({restaurant?.vatPercentage ?? 13}%)</label>
                     <input type="number" value={editVat} onChange={e => setEditVat(Number(e.target.value))}
                       className="w-full rounded border px-1 py-0.5 text-xs" /></div>
-                  <div><label className="text-xs">Service Charge</label>
+                  <div><label className="text-xs">Service Charge ({restaurant?.serviceChargePercentage ?? 10}%)</label>
                     <input type="number" value={editSc} onChange={e => setEditSc(Number(e.target.value))}
                       className="w-full rounded border px-1 py-0.5 text-xs" /></div>
-                  <div><label className="text-xs">Tax</label>
+                  <div><label className="text-xs">Additional Tax ({restaurant?.taxPercentage ?? 0}%)</label>
                     <input type="number" value={editTax} onChange={e => setEditTax(Number(e.target.value))}
                       className="w-full rounded border px-1 py-0.5 text-xs" /></div>
                   <div><label className="text-xs">Total</label>
                     <p className="text-lg font-bold text-brand-600">
                       NRS {(selectedBill.subtotal - editDiscount + editVat + editSc + editTax).toFixed(2)}</p></div>
                   <div className="col-span-2 mt-2">
-                    <button onClick={saveAdjustments} className="rounded bg-gray-200 px-3 py-1 text-xs hover:bg-gray-300">Update</button>
+                    <button onClick={saveAdjustments} className="rounded bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 hover:bg-brand-200">Update Adjustments</button>
                   </div>
                 </div>
               ) : (

@@ -28,12 +28,12 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
 
   // ---------------------------------------------------------------------------
   // POST /api/bills/request — Customer requests bill
-  // Body: { sessionToken }
+  // Body: { sessionToken, customerName, customerPhone? }
   // ---------------------------------------------------------------------------
   app.post('/api/bills/request', async (req, reply) => {
-    const { sessionToken } = req.body as { sessionToken?: string };
-    if (!sessionToken) {
-      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'sessionToken is required.' } });
+    const { sessionToken, customerName, customerPhone } = req.body as { sessionToken?: string; customerName?: string; customerPhone?: string };
+    if (!sessionToken || !customerName?.trim()) {
+      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'sessionToken and customerName are required.' } });
     }
 
     const session = await db.query.tableSessions.findFirst({
@@ -87,7 +87,9 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
 
     await db.insert(bills).values({
       id: billId, restaurantId: restaurant.id, sessionId: session.id, tableId: session.tableId,
-      subtotal, discount, vat, serviceCharge: sc, tax, total, status: 'bill_requested',
+      subtotal, discount, vat, serviceCharge: sc, tax, total,
+      customerName: customerName.trim(), customerPhone: customerPhone?.trim() ?? null,
+      status: 'bill_requested',
     } as any);
 
     return reply.status(201).send({ success: true, data: { id: billId, status: 'bill_requested', subtotal, vat, sc, tax, total } });
