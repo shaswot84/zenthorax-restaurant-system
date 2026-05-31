@@ -101,12 +101,28 @@ export default function SecurityPage() {
     <DashboardLayout variant="admin">
       <div className="w-full">
         <h1 className="text-xl sm:text-2xl font-bold">Security</h1>
-        <p className="text-xs text-muted-foreground mt-1">Passkey & WebAuthn for critical admin actions</p>
+        <p className="text-xs text-muted-foreground mt-1">Passkeys, WebAuthn & Admin Management</p>
 
         <div className="mt-6 max-w-lg space-y-4">
           <div className="rounded-lg border bg-card p-4">
             <h2 className="text-sm font-semibold">Account</h2>
             <p className="text-xs text-muted-foreground mt-1">{user.email} — Role: {role}</p>
+          </div>
+
+          {/* Manage Super Admins */}
+          <div className="rounded-lg border bg-card p-4">
+            <h2 className="text-sm font-semibold">Manage Super Admins</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              To add a new super admin: have them sign in at <code className="bg-gray-100 px-1 rounded">/admin/login</code> with Google,
+              then promote them by running this SQL in Supabase:
+            </p>
+            <div className="mt-2 rounded bg-gray-900 p-3 text-xs text-green-400 font-mono overflow-x-auto">
+              UPDATE public.users SET role = &apos;super_admin&apos; WHERE email = &apos;their-email@gmail.com&apos;;
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              After promotion, they must sign out and sign back in at <code className="bg-gray-100 px-1 rounded">/admin/login</code>.
+              Each Google account can only have one role.
+            </p>
           </div>
 
           <div className="rounded-lg border bg-card p-4">
