@@ -102,17 +102,6 @@ export default function AdminAnalyticsPage() {
               </div>
             )}
           </div>
-
-          <div className="rounded-xl border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Subscription Status</h2>
-            {statusDist.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">No data yet.</p>
-            ) : (
-              <div className="h-[280px]">
-                <Bar data={statusChart} options={{ indexAxis: 'y' as const, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Restaurant Subscription Status — Sorted by remaining periods */}

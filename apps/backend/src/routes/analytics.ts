@@ -191,7 +191,7 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       ) as any)
       .orderBy(subscriptions.endDate) as any;
 
-    // Full sorted restaurant subscription status list
+    // Full sorted restaurant subscription status list — ONE per restaurant (latest)
     const allSubs = await db.select({
       restaurantName: restaurants.name,
       restaurantSlug: restaurants.slug,
@@ -204,7 +204,10 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
     }).from(subscriptions)
       .innerJoin(restaurants, eq(subscriptions.restaurantId, restaurants.id))
       .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
-      .where(eq(subscriptions.status, 'active' as any) as any)
+      .where(and(
+        eq(subscriptions.status, 'active' as any),
+        sql`subscriptions.id IN (SELECT DISTINCT ON (restaurant_id) id FROM public.subscriptions WHERE status = 'active' ORDER BY restaurant_id, created_at DESC)` as any,
+      ) as any)
       .orderBy(sql`EXTRACT(DAY FROM (end_date - NOW()))`) as any;
 
     // Categorize and sort: Active (ascending days left), Grace Period, Expired
