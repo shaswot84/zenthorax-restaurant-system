@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 
 interface MenuItem { id: string; categoryId: string; name: string; description: string | null; price: number; imageUrl: string | null; isAvailable: boolean; }
 interface Category { id: string; name: string; sortOrder: number; items: MenuItem[]; }
@@ -105,23 +104,49 @@ export default function QRMenuPage() {
     setRequestingBill(false);
   }
 
-  // Supabase Realtime — instant bill status updates
+  // Persist session data so refresh doesn't lose state
+  useEffect(() => {
+    if (tableData) {
+      localStorage.setItem('zenthorax-session', JSON.stringify({ token: tableData.sessionToken, billId, billStatus }));
+    }
+  }, [tableData, billId, billStatus]);
+
+  // Restore session + bill status on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('zenthorax-session');
+    if (saved && !billStatus) {
+      try {
+        const { billId: sBillId, billStatus: sStatus, token } = JSON.parse(saved);
+        if (sBillId && sStatus) {
+          setBillId(sBillId);
+          setBillStatus(sStatus);
+          // Fetch current bill status from API
+          fetch(`${API}/api/bills/${token}/public`)
+            .then(r => r.json())
+            .then(json => { if (json.success) setBillStatus(json.data.status); });
+        }
+      } catch {}
+    }
+  }, []);
+
+  // Poll bill status — reliable fallback (RLS blocks Realtime for anon users)
+  const billStatusRef = useRef(billStatus);
+  billStatusRef.current = billStatus;
   useEffect(() => {
     if (!billId || billStatus === 'paid' || !tableData) return;
-    const channel = supabase
-      .channel('bill-updates')
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'bills',
-        filter: `id=eq.${billId}`,
-      }, (payload: any) => {
-        if (payload.new?.status === 'paid') {
+    const interval = setInterval(async () => {
+      if (billStatusRef.current === 'paid') { clearInterval(interval); return; }
+      try {
+        const res = await fetch(`${API}/api/bills/${tableData.sessionToken}/public`);
+        const json = await res.json();
+        if (json.success && json.data && json.data.status === 'paid') {
           setBillStatus('paid');
-          supabase.removeChannel(channel);
+          clearInterval(interval);
         }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [billId, billStatus, tableData]);
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [billId, tableData]);
 
   const filteredItems = activeCat === 'all' ? categories.flatMap(c => c.items) : (categories.find(c => c.id === activeCat)?.items ?? []);
 
