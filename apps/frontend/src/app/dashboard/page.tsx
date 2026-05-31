@@ -98,8 +98,8 @@ export default function DashboardPage() {
             <div className="mt-8 rounded-xl border bg-card p-6">
               <h2 className="text-lg font-semibold">Getting Started</h2>
               <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-                <li>1. Add your menu items in <a href="/dashboard/menu" className="text-brand-500 hover:underline">Menu</a></li>
-                <li>2. Set up your tables in <a href="/dashboard/tables" className="text-brand-500 hover:underline">Tables</a></li>
+                <li>1. Add your menu items in <span className="font-medium">Menu</span></li>
+                <li>2. Set up your tables in <span className="font-medium">Tables</span></li>
                 <li>3. Print QR codes and place them on tables</li>
                 <li>4. Start taking orders!</li>
               </ul>
