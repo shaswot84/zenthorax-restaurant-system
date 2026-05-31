@@ -4,7 +4,7 @@ import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
 import { requireRole, superAdminOnly } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
-import { bills, orders, orderItems, restaurants, subscriptions, subscriptionPackages } from '@zenthorax/database/schema';
+import { bills, orders, orderItems, restaurants, subscriptions, subscriptionPackages, payments } from '@zenthorax/database/schema';
 import { eq, and, gte, sql, desc, inArray } from 'drizzle-orm';
 
 interface AnalyticsDI { db: Database; env: Env; }
@@ -136,11 +136,23 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       packageName: subscriptionPackages.name,
       durationMonths: subscriptionPackages.durationMonths,
       activeCount: sql<number>`COUNT(*)`,
-      revenue: sql<number>`COALESCE(SUM(${subscriptionPackages.priceNrs}), 0)`,
+      subscriptionValue: sql<number>`COALESCE(SUM(${subscriptionPackages.priceNrs}), 0)`,
     }).from(subscriptions)
       .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
       .where(and(eq(subscriptions.status, 'active' as any), sql`end_date > NOW()` as any) as any)
       .groupBy(subscriptionPackages.name, subscriptionPackages.durationMonths, subscriptionPackages.priceNrs) as any;
+
+    // Actual collected revenue from verified payments
+    const [paymentRevenue] = await db.select({
+      total: sql<number>`COALESCE(SUM(amount_nrs), 0)`,
+    }).from(payments).where(eq(payments.status, 'verified' as any) as any);
+
+    // Total subscription value (all active, not just trully active)
+    const [totalSubValue] = await db.select({
+      total: sql<number>`COALESCE(SUM(${subscriptionPackages.priceNrs}), 0)`,
+    }).from(subscriptions)
+      .innerJoin(subscriptionPackages, eq(subscriptions.packageId, subscriptionPackages.id))
+      .where(eq(subscriptions.status, 'active' as any) as any);
 
     // True active: status=active AND end_date > NOW()
     const [trulyActive] = await db.select({ count: sql<number>`COUNT(*)` }).from(subscriptions)
@@ -185,6 +197,8 @@ export async function analyticsRoutes(app: FastifyInstance, di: AnalyticsDI) {
       activeSubscriptions: Number(trulyActive?.count ?? 0),
       gracePeriod: Number(gracePeriod?.count ?? 0),
       expired: Number(expired?.count ?? 0),
+      collectedRevenue: Number(paymentRevenue?.total ?? 0),
+      totalSubscriptionValue: Number(totalSubValue?.total ?? 0),
       upcomingExpirations: upcoming,
     }});
   });

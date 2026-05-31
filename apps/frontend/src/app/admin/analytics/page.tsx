@@ -38,7 +38,8 @@ export default function AdminAnalyticsPage() {
   if (isLoading || loading || !user) return null;
 
   const pkg = subData?.packageBreakdown ?? [];
-  const totalSubRevenue = pkg.reduce((s: number, p: any) => s + (p.revenue ?? 0), 0);
+  const collectedRevenue = subData?.collectedRevenue ?? 0;
+  const totalSubValue = subData?.totalSubscriptionValue ?? 0;
 
   const statusDist = [
     { name: 'Active', value: subData?.activeSubscriptions ?? 0, color: STATUS_COLORS.Active },
@@ -50,7 +51,7 @@ export default function AdminAnalyticsPage() {
     labels: pkg.map((p: any) => p.packageName),
     datasets: [
       { label: 'Active Restaurants', data: pkg.map((p: any) => p.activeCount), backgroundColor: '#f97316', borderRadius: 4 },
-      { label: 'Revenue (NRS)', data: pkg.map((p: any) => p.revenue), backgroundColor: '#3b82f6', borderRadius: 4 },
+      { label: 'Subscription Value (NRS)', data: pkg.map((p: any) => p.subscriptionValue), backgroundColor: '#3b82f6', borderRadius: 4 },
     ],
   };
 
@@ -74,13 +75,14 @@ export default function AdminAnalyticsPage() {
         <h1 className="text-2xl font-bold">Platform Analytics</h1>
         <p className="text-sm text-muted-foreground mt-1">Subscription-based metrics</p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-5">
+        <div className="mt-6 grid gap-4 md:grid-cols-6">
           {[
             { label: 'Total Restaurants', value: subData?.totalRestaurants ?? 0, color: 'text-gray-700' },
-            { label: 'Active Subscriptions', value: subData?.activeSubscriptions ?? 0, color: 'text-green-600' },
+            { label: 'Active Subs', value: subData?.activeSubscriptions ?? 0, color: 'text-green-600' },
             { label: 'Grace Period', value: subData?.gracePeriod ?? 0, color: 'text-yellow-600' },
             { label: 'Expired', value: subData?.expired ?? 0, color: 'text-red-600' },
-            { label: 'Sub Revenue', value: `NRS ${totalSubRevenue.toLocaleString()}`, color: 'text-brand-600' },
+            { label: 'Collected Revenue', value: `NRS ${collectedRevenue.toLocaleString()}`, color: 'text-green-600' },
+            { label: 'Active Sub Value', value: `NRS ${totalSubValue.toLocaleString()}`, color: 'text-brand-600' },
           ].map(k => (
             <div key={k.label} className="rounded-xl border bg-card p-4">
               <p className="text-xs text-muted-foreground">{k.label}</p>
