@@ -96,6 +96,13 @@ export default function KitchenPage() {
     return () => { channel.unsubscribe(); };
   }, [restaurant, soundEnabled, loadTickets]);
 
+  // Polling fallback — refresh tickets every 10s
+  useEffect(() => {
+    if (!restaurant) return;
+    const interval = setInterval(() => loadTickets(), 10000);
+    return () => clearInterval(interval);
+  }, [restaurant, loadTickets]);
+
   async function updateStatus(orderId: string, status: string) {
     if (!restaurant) return;
     await apiPatch(`/api/restaurants/${restaurant.id}/kitchen/orders/${orderId}/status`, { status });

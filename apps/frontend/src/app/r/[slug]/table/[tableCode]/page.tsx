@@ -103,6 +103,20 @@ export default function QRMenuPage() {
     setRequestingBill(false);
   }
 
+  // Poll bill status — updates when restaurant marks as paid
+  useEffect(() => {
+    if (!billStatus || billStatus === 'paid' || !tableData) return;
+    const interval = setInterval(async () => {
+      const res = await fetch(`${API}/api/bills/${tableData.sessionToken}/public`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setBillStatus(json.data.status);
+        if (json.data.status === 'paid') clearInterval(interval);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [billStatus, tableData]);
+
   const filteredItems = activeCat === 'all' ? categories.flatMap(c => c.items) : (categories.find(c => c.id === activeCat)?.items ?? []);
 
   if (status === 'loading') return <div className="flex min-h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" /></div>;
