@@ -178,7 +178,7 @@ export default function QRMenuPage() {
               {billStatus === 'paid' && (
                 <div>
                   <p className="font-bold mb-1">✅ Payment Confirmed!</p>
-                  <a href={`${API}/api/bills/${billId || tableData?.sessionToken}/public`} target="_blank" rel="noopener" className="inline-block rounded bg-green-500 px-3 py-1 text-xs font-semibold text-white">📥 Download Bill</a>
+                  <a href={`/bill/${billId || tableData?.sessionToken}`} target="_blank" rel="noopener" className="inline-block rounded bg-green-500 px-3 py-1 text-xs font-semibold text-white">📥 View & Print Bill</a>
                 </div>
               )}
             </div>

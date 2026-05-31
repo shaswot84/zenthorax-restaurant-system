@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/r/', '/admin/login', '/kitchen/login'];
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/r/', '/admin/login', '/kitchen/login', '/bill/'];
 
 const PROTECTED_PATHS: Record<string, string> = {
   '/dashboard': '/login',
