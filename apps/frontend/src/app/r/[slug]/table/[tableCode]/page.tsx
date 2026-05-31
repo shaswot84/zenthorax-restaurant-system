@@ -139,23 +139,21 @@ export default function QRMenuPage() {
             <h1 className="text-lg font-bold">{tableData?.restaurantName}</h1>
             <p className="text-xs text-muted-foreground">Table: {tableData?.tableNumber}</p>
           </div>
-          {/* Bill Download — top right */}
-          {billStatus && (
-            <a
-              href={billStatus === 'paid' ? `/bill/${billId || tableData?.sessionToken}` : undefined}
-              target={billStatus === 'paid' ? '_blank' : undefined}
-              rel={billStatus === 'paid' ? 'noopener' : undefined}
-              onClick={e => { if (billStatus !== 'paid') e.preventDefault(); }}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                billStatus === 'paid'
-                  ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-              aria-disabled={billStatus !== 'paid'}
-            >
-              {billStatus === 'paid' ? '📥 Download Bill' : '📥 Download Bill'}
-            </a>
-          )}
+          {/* Bill Download — top right, always visible, disabled until paid */}
+          <a
+            href={billStatus === 'paid' ? `/bill/${billId || tableData?.sessionToken}` : undefined}
+            target={billStatus === 'paid' ? '_blank' : undefined}
+            rel={billStatus === 'paid' ? 'noopener' : undefined}
+            onClick={e => { if (billStatus !== 'paid') e.preventDefault(); }}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              billStatus === 'paid'
+                ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed pointer-events-none'
+            }`}
+            title={billStatus === 'paid' ? 'Download your bill' : 'Bill will be available after payment'}
+          >
+            📥 Download Bill
+          </a>
         </div>
       </header>
 
