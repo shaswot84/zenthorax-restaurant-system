@@ -67,27 +67,27 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout variant="restaurant">
-      <div className="w-full overflow-hidden">
+      <div className="max-w-full overflow-x-hidden" style={{ maxWidth: '100%' }}>
         <h1 className="text-xl sm:text-2xl font-bold">Analytics</h1>
 
         {/* KPI Cards — responsive grid */}
-        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-4 grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-w-full">
           {[
-            { label: 'Revenue Today', value: `NRS ${(summary?.revenueToday ?? 0).toLocaleString()}`, color: 'text-green-600' },
-            { label: 'Active Orders', value: summary?.activeOrders ?? 0, color: 'text-blue-600' },
-            { label: 'Total Revenue', value: `NRS ${(summary?.totalRevenue ?? 0).toLocaleString()}`, color: 'text-brand-600' },
-            { label: 'Paid Bills', value: summary?.totalPaidBills ?? 0, color: 'text-purple-600' },
+            { label: 'Today', value: `NRS ${(summary?.revenueToday ?? 0).toLocaleString()}`, color: 'text-green-600' },
+            { label: 'Active', value: summary?.activeOrders ?? 0, color: 'text-blue-600' },
+            { label: 'Total Rev', value: `NRS ${(summary?.totalRevenue ?? 0).toLocaleString()}`, color: 'text-brand-600' },
+            { label: 'Paid', value: summary?.totalPaidBills ?? 0, color: 'text-purple-600' },
             { label: 'Avg Order', value: `NRS ${(summary?.avgOrderValue ?? 0).toLocaleString()}`, color: 'text-yellow-600' },
           ].map(k => (
-            <div key={k.label} className="rounded-lg border bg-card p-3 sm:p-4">
-              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{k.label}</p>
-              <p className={`mt-1 text-base sm:text-xl font-bold ${k.color} truncate`}>{k.value}</p>
+            <div key={k.label} className="rounded-lg border bg-card px-2 py-2 sm:p-3">
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground">{k.label}</p>
+              <p className={`mt-0.5 text-sm sm:text-lg font-bold ${k.color} truncate`}>{k.value}</p>
             </div>
           ))}
         </div>
 
         {/* Revenue Trend — compact */}
-        <div className="mt-4 rounded-lg border bg-card p-3 sm:p-4">
+        <div className="mt-3 rounded-lg border bg-card p-2 sm:p-3 max-w-full">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
             <h2 className="text-sm sm:text-lg font-semibold">Revenue Trend</h2>
             <select value={period} onChange={e => setPeriod(e.target.value)} className="rounded border px-2 py-1 text-[10px] sm:text-xs">
@@ -99,32 +99,34 @@ export default function AnalyticsPage() {
           {revenue.length === 0 ? (
             <p className="text-muted-foreground text-center py-8 text-xs">No revenue data yet.</p>
           ) : (
-            <div className="w-full overflow-hidden" style={{ height: 'min(260px, 45vh)' }}>
+            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(220px, 40vh)' }}>
               <Line data={revenueChart} options={{
                 responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 5, right: 5, bottom: 0, left: 0 } },
                 plugins: { legend: { display: false } },
                 scales: {
-                  x: { ticks: { maxTicksLimit: 6, font: { size: 9 } } },
-                  y: { ticks: { font: { size: 9 }, callback: (v) => typeof v === 'number' ? (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v) : v } },
+                  x: { ticks: { maxTicksLimit: 5, font: { size: 8 } } },
+                  y: { ticks: { maxTicksLimit: 5, font: { size: 8 }, callback: (v) => typeof v === 'number' ? (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v) : v } },
                 },
               }} />
             </div>
           )}
         </div>
 
-        {/* Top Selling Items — full width on mobile, half on desktop */}
-        <div className="mt-4 rounded-lg border bg-card p-3 sm:p-4">
-          <h2 className="text-sm sm:text-lg font-semibold mb-2">Top Selling Items</h2>
+        {/* Top Selling Items */}
+        <div className="mt-3 rounded-lg border bg-card p-2 sm:p-3 max-w-full">
+          <h2 className="text-xs sm:text-sm font-semibold mb-1">Top Selling Items</h2>
           {items.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8 text-xs">No data yet.</p>
+            <p className="text-muted-foreground text-center py-6 text-xs">No data yet.</p>
           ) : (
-            <div className="w-full overflow-hidden" style={{ height: 'min(240px, 40vh)' }}>
-              <Bar data={itemsChart} options={{
+            <div className="w-full overflow-hidden" style={{ maxWidth: '100%', height: 'min(200px, 35vh)' }}>
+              <Bar data={{ ...itemsChart, labels: items.slice(0, 5).map(d => truncate(d.name, 16)) }} options={{
                 indexAxis: 'y' as const, responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 0, right: 5, bottom: 0, left: 0 } },
                 plugins: { legend: { display: false } },
                 scales: {
-                  x: { ticks: { font: { size: 9 } } },
-                  y: { ticks: { font: { size: 9 }, callback: (v) => typeof v === 'string' ? truncate(v, 18) : v } },
+                  x: { ticks: { maxTicksLimit: 4, font: { size: 8 } } },
+                  y: { ticks: { font: { size: 8 }, callback: (v) => typeof v === 'string' ? truncate(v, 14) : v } },
                 },
               }} />
             </div>
