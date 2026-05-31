@@ -55,8 +55,10 @@ export default function AnalyticsPage() {
     }],
   };
 
+  const truncate = (s: string, max: number) => s.length > max ? s.slice(0, max) + '…' : s;
+
   const itemsChart = {
-    labels: items.slice(0, 8).map(d => d.name),
+    labels: items.slice(0, 8).map(d => truncate(d.name, 20)),
     datasets: [{
       label: 'Quantity Sold', data: items.slice(0, 8).map(d => d.quantity),
       backgroundColor: CHART_COLORS,
@@ -65,7 +67,7 @@ export default function AnalyticsPage() {
 
   return (
     <DashboardLayout variant="restaurant">
-      <div className="max-w-full">
+      <div className="w-full overflow-hidden">
         <h1 className="text-xl sm:text-2xl font-bold">Analytics</h1>
 
         {/* KPI Cards — responsive grid */}
@@ -97,13 +99,13 @@ export default function AnalyticsPage() {
           {revenue.length === 0 ? (
             <p className="text-muted-foreground text-center py-8 text-xs">No revenue data yet.</p>
           ) : (
-            <div className="w-full" style={{ height: 'min(280px, 50vh)' }}>
+            <div className="w-full overflow-hidden" style={{ height: 'min(260px, 45vh)' }}>
               <Line data={revenueChart} options={{
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                  x: { ticks: { maxTicksLimit: 8, font: { size: 10 } } },
-                  y: { ticks: { font: { size: 10 }, callback: (v) => typeof v === 'number' ? (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v) : v } },
+                  x: { ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                  y: { ticks: { font: { size: 9 }, callback: (v) => typeof v === 'number' ? (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v) : v } },
                 },
               }} />
             </div>
@@ -116,13 +118,13 @@ export default function AnalyticsPage() {
           {items.length === 0 ? (
             <p className="text-muted-foreground text-center py-8 text-xs">No data yet.</p>
           ) : (
-            <div className="w-full" style={{ height: 'min(250px, 40vh)' }}>
+            <div className="w-full overflow-hidden" style={{ height: 'min(240px, 40vh)' }}>
               <Bar data={itemsChart} options={{
                 indexAxis: 'y' as const, responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                  x: { ticks: { font: { size: 10 } } },
-                  y: { ticks: { font: { size: 10 } } },
+                  x: { ticks: { font: { size: 9 } } },
+                  y: { ticks: { font: { size: 9 }, callback: (v) => typeof v === 'string' ? truncate(v, 18) : v } },
                 },
               }} />
             </div>
