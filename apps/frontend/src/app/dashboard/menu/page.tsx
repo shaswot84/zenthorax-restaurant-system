@@ -88,7 +88,7 @@ export default function MenuPage() {
 
     let imageUrl = editingItem?.imageUrl ?? null;
     if (itemImage) {
-      // Compress on client side before upload (reduces size 5-10x)
+      // Compress client-side → tiny file → fast upload
       const compressed = await new Promise<Blob>((resolve) => {
         const img = new Image();
         img.onload = () => {
@@ -104,13 +104,20 @@ export default function MenuPage() {
         img.src = URL.createObjectURL(itemImage);
       });
 
+      // Send via backend (uses service key, no RLS issues)
       const { supabase } = await import('@/lib/supabase');
-      const path = `${restaurant.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
-      const { error, data: upData } = await supabase.storage
-        .from('menu-images')
-        .upload(path, compressed, { contentType: 'image/webp', upsert: true });
-      if (!error && upData) {
-        imageUrl = supabase.storage.from('menu-images').getPublicUrl(path).data.publicUrl;
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (token) {
+        const formData = new FormData();
+        formData.append('file', compressed, 'image.webp');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/upload/menu-image`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const json = await res.json();
+        if (json.success) imageUrl = json.data.imageUrl;
       }
     }
 

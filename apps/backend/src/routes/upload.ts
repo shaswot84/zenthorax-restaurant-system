@@ -27,18 +27,13 @@ export async function uploadRoutes(app: FastifyInstance, di: UploadDI) {
       return reply.status(400).send({ success: false, error: { code: 'TOO_LARGE' } });
     }
 
-    const imageId = randomUUID();
-    const path = `${req.user!.id}/${imageId}.webp`;
+    const ext = data.filename.split('.').pop() || 'webp';
+    const path = `${req.user!.id}/${randomUUID()}.${ext}`;
 
-    // Single resize + WebP conversion (fast)
-    const webp = await sharp(buf)
-      .resize(500, 500, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer();
-
+    // Upload directly — client already compresses via canvas
     const { error } = await supabase.storage
       .from('menu-images')
-      .upload(path, webp, { contentType: 'image/webp', upsert: true });
+      .upload(path, buf, { contentType: data.mimetype, upsert: true });
 
     if (error) {
       return reply.status(500).send({ success: false, error: { code: 'UPLOAD_FAILED', message: error.message } });
