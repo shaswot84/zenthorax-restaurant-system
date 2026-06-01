@@ -62,6 +62,9 @@ export default function QRMenuPage() {
   const hasOrders = sessionOrders.length > 0;
   const orderedTotal = sessionOrders.reduce((s, o) => s + (o.items || []).reduce((si: number, i: any) => si + i.totalPrice, 0), 0);
   const orderedCount = sessionOrders.reduce((s, o) => s + (o.items || []).reduce((si: number, i: any) => si + i.quantity, 0), 0);
+  // Request Bill only enabled when all orders are ready or cancelled
+  const allOrdersFinal = hasOrders && sessionOrders.every((o: any) => o.status === 'ready' || o.status === 'cancelled');
+  const pendingOrders = sessionOrders.filter((o: any) => o.status !== 'ready' && o.status !== 'cancelled').length;
 
   function addToCart(item: MenuItem) {
     setCart(prev => {
@@ -237,9 +240,16 @@ export default function QRMenuPage() {
                 </button>
               )}
               {hasOrders && (
-                <button onClick={() => { setShowBillPanel(true); setCustName(''); setCustPhone(''); }}
-                  className={`${cart.length > 0 ? '' : 'flex-1'} rounded-lg border-2 border-brand-500 px-4 py-3 text-sm font-bold text-brand-600 hover:bg-brand-50`}>
-                  🧾 Request Bill
+                <button
+                  onClick={() => { if (allOrdersFinal) { setShowBillPanel(true); setCustName(''); setCustPhone(''); } }}
+                  disabled={!allOrdersFinal}
+                  title={!allOrdersFinal ? `Waiting for kitchen to finish ${pendingOrders} order(s)` : 'Request your bill'}
+                  className={`${cart.length > 0 ? '' : 'flex-1'} rounded-lg border-2 px-4 py-3 text-sm font-bold transition-colors ${
+                    allOrdersFinal
+                      ? 'border-brand-500 text-brand-600 hover:bg-brand-50 cursor-pointer'
+                      : 'border-gray-200 text-gray-300 cursor-not-allowed'
+                  }`}>
+                  🧾 Request Bill{!allOrdersFinal && ` (${pendingOrders} pending)`}
                 </button>
               )}
             </div>
