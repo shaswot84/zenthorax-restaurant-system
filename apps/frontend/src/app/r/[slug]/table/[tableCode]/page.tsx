@@ -44,7 +44,10 @@ export default function QRMenuPage() {
         const menuJson = await menuRes.json();
         if (menuJson.success && menuJson.data) setCategories(menuJson.data);
         setStatus('valid');
-        // Load existing session orders
+        // Clear any stale state from a previous customer session
+        setCart([]); setBillStatus(null); setBillId(null); setSessionOrders([]);
+        localStorage.removeItem('zenthorax-session');
+        // Load existing session orders (should be empty for a fresh session)
         const ordRes = await fetch(`${API}/api/sessions/${json.data.sessionToken}/orders`);
         const ordJson = await ordRes.json();
         if (ordJson.success && ordJson.data) setSessionOrders(ordJson.data.filter((o: any) => o.status !== 'cancelled'));
