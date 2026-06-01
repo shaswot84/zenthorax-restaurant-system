@@ -206,4 +206,20 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     );
     return reply.send({ success: true });
   });
+
+  // ---------------------------------------------------------------------------
+  // POST /api/restaurants/:id/tables/:tableId/clear — Clear table session
+  // Closes all active sessions so next QR scan gets a fresh session.
+  // ---------------------------------------------------------------------------
+  app.post('/api/restaurants/:id/tables/:tableId/clear', { preHandler: managerOnly }, async (req, reply) => {
+    const { id, tableId } = req.params as { id: string; tableId: string };
+    if (!(await verifyOwnership(id, req.user!.id))) {
+      return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
+    }
+    // Close all active sessions for this table
+    await db.update(tableSessions).set({ isActive: false, closedAt: new Date() }).where(
+      and(eq(tableSessions.tableId, tableId) as any, eq(tableSessions.isActive, true) as any) as any,
+    );
+    return reply.send({ success: true, data: { message: 'Table cleared. Next scan gets a fresh session.' } });
+  });
 }

@@ -50,6 +50,12 @@ export default function TablesPage() {
     load();
   }
 
+  async function clearTable(tableId: string) {
+    if (!restaurant || !confirm('Clear this table? All active sessions will be closed. The next QR scan will get a fresh session.')) return;
+    await apiPost(`/api/restaurants/${restaurant.id}/tables/${tableId}/clear`);
+    load();
+  }
+
   if (isLoading || loading || !user) return null;
 
   return (
@@ -77,9 +83,15 @@ export default function TablesPage() {
                     Code: {table.tableCode.slice(0, 8)}...
                   </p>
                   {table.sessions?.length > 0 && (
-                    <span className="mt-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                      Active session
-                    </span>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        Active session
+                      </span>
+                      <button onClick={() => clearTable(table.id)}
+                        className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-200">
+                        Clear Table
+                      </button>
+                    </div>
                   )}
                   {!table.isActive && (
                     <span className="mt-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
