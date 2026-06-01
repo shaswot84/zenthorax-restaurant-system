@@ -80,7 +80,7 @@ export function DashboardLayout({
     // page suppresses any automatic sign-in prompt and clears stale state.
     const returnUrl = encodeURIComponent(window.location.origin + '/?signout=1');
     window.location.href =
-      `https://accounts.google.com/logout?continue=${returnUrl}`;
+      `https://accounts.google.com/Logout?continue=${returnUrl}`;
   }
 
   // Group items by section
