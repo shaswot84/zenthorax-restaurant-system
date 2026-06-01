@@ -32,6 +32,19 @@ const PACKAGES = [
 
 export default function LandingPage() {
   const router = useRouter();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const isSignout = searchParams?.get('signout') === '1';
+
+  // If arriving from a sign-out, clear any stale auth state and suppress
+  // automatic Google sign-in prompts (One Tap / account chooser).
+  if (isSignout && typeof window !== 'undefined') {
+    // Clean the URL (remove ?signout=1) so a refresh doesn't re-trigger
+    window.history.replaceState({}, '', '/');
+    // Disable Google auto sign-in if GIS is loaded
+    if ((window as any).google?.accounts?.id?.disableAutoSelect) {
+      (window as any).google.accounts.id.disableAutoSelect();
+    }
+  }
 
   function handleGetStarted(packageKey: string) {
     localStorage.setItem('zenthorax-package', packageKey);

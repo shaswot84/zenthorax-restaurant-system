@@ -61,22 +61,26 @@ export function DashboardLayout({
   const navItems =
     variant === 'kitchen' ? KITCHEN_NAV : variant === 'admin' ? ADMIN_NAV : RESTAURANT_NAV;
 
-  function handleSignOut() {
+  async function handleSignOut() {
     // Step 1: Clear ALL app-specific state
-    signOut();                                                  // Supabase JWT + in-memory user state
+    await signOut();                                            // Supabase JWT + in-memory (await it)
     localStorage.removeItem('zenthorax-role');                 // role selection flag
     localStorage.removeItem('zenthorax-admin-login');          // admin login flag
     localStorage.removeItem('zenthorax-package');              // onboarding package
     localStorage.removeItem('zenthorax-session');              // customer table session
     sessionStorage.removeItem('zenthorax-passkey-verified');   // admin passkey flag
 
-    // Step 2: Sign out of Google.
-    // We redirect the full page to accounts.google.com/logout — this is the
-    // only way to clear Google's auth cookies (same-origin policy prevents JS
-    // from touching accounts.google.com). After Google signs the user out, the
-    // browser stays on Google's signed-out confirmation page. The user can
-    // close that tab or navigate back to our site manually.
-    window.location.href = 'https://accounts.google.com/logout';
+    // Step 2: Disable Google auto sign-in prompt (One Tap) if GIS is loaded.
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id?.disableAutoSelect) {
+      (window as any).google.accounts.id.disableAutoSelect();
+    }
+
+    // Step 3: Redirect to Google logout.
+    // The continue param brings the user back to /?signout=1 so the landing
+    // page suppresses any automatic sign-in prompt and clears stale state.
+    const returnUrl = encodeURIComponent(window.location.origin + '/?signout=1');
+    window.location.href =
+      `https://accounts.google.com/logout?continue=${returnUrl}`;
   }
 
   // Group items by section
