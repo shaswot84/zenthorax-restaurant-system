@@ -75,13 +75,10 @@ export function DashboardLayout({
       (window as any).google.accounts.id.disableAutoSelect();
     }
 
-    // Step 3: Sign out of Google.
-    // Google's /Logout endpoint does not support external continue= URLs
-    // (returns 400). The standard approach: redirect the full page to Google
-    // /Logout, which clears Google's auth cookies. The user then closes the
-    // Google tab and returns to our site. On return, /?signout=1 prevents
-    // auto sign-in (handled in the landing page component).
-    window.location.href = 'https://accounts.google.com/Logout';
+    // Step 3: Go to the landing page.
+    // Our Supabase session is already cleared. On next sign-in, Google OAuth
+    // uses prompt=select_account so the user chooses their account explicitly.
+    window.location.href = window.location.origin + '/?signout=1';
   }
 
   // Group items by section
