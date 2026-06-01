@@ -70,14 +70,13 @@ export function DashboardLayout({
     localStorage.removeItem('zenthorax-session');              // customer table session
     sessionStorage.removeItem('zenthorax-passkey-verified');   // admin passkey flag
 
-    // Step 2: Redirect to Google logout.
-    // This is the ONLY documented way to clear Google's auth cookies on
-    // accounts.google.com. Same-origin policy prevents any other approach.
-    const origin = window.location.origin;
-    // Safety net: if Google logout hangs or is blocked, force home after 6s
-    setTimeout(() => { window.location.href = origin + '/'; }, 6000);
-    window.location.href =
-      `https://accounts.google.com/logout?continue=${encodeURIComponent(origin + '/')}`;
+    // Step 2: Sign out of Google.
+    // We redirect the full page to accounts.google.com/logout — this is the
+    // only way to clear Google's auth cookies (same-origin policy prevents JS
+    // from touching accounts.google.com). After Google signs the user out, the
+    // browser stays on Google's signed-out confirmation page. The user can
+    // close that tab or navigate back to our site manually.
+    window.location.href = 'https://accounts.google.com/logout';
   }
 
   // Group items by section
