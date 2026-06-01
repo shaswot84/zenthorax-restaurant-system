@@ -84,14 +84,22 @@ export default function TablesPage() {
                   </p>
                   {table.sessions?.length > 0 && (
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        Active session
-                      </span>
+                      {table.sessions.some((s: any) => s.isActive) && (
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                          Active session
+                        </span>
+                      )}
                       <button onClick={() => clearTable(table.id)}
                         className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-200">
                         Clear Table
                       </button>
                     </div>
+                  )}
+                  {!table.sessions?.length && table.isActive && (
+                    <button onClick={() => clearTable(table.id)}
+                      className="mt-2 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 hover:bg-red-100 hover:text-red-600">
+                      Clear Table
+                    </button>
                   )}
                   {!table.isActive && (
                     <span className="mt-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">

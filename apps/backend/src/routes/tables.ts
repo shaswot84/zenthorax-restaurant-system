@@ -98,7 +98,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     const results = await db.query.tables.findMany({
       where: (t: any, { eq }: any) => eq(t.restaurantId, id),
       orderBy: [desc(tables.createdAt)],
-      with: { sessions: { where: (s: any, { eq }: any) => eq(s.isActive, true) } },
+      with: { sessions: { orderBy: [desc(tableSessions.openedAt)], limit: 5 } },
     });
 
     return reply.send({ success: true, data: results });
