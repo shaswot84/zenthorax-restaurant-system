@@ -58,6 +58,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Best-effort session invalidation on tab close.
+  // Uses sendBeacon to fire a one-way request to the backend before the page unloads.
+  // Not guaranteed (browser may kill the tab first), but provides a safety net.
+  useEffect(() => {
+    const handler = () => {
+      const token = session?.access_token;
+      if (token) {
+        navigator.sendBeacon(
+          `${window.location.origin}/api/auth/expire-session`,
+          JSON.stringify({ token }),
+        );
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [session]);
+
   async function syncUserRole(userId: string) {
     try {
       const res = await apiPost<{ id: string; role: string; created: boolean }>(

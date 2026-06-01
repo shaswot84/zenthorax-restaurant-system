@@ -118,6 +118,36 @@ export async function authRoutes(app: FastifyInstance, di: AuthDI) {
   });
 
   // ---------------------------------------------------------------------------
+  // GET /api/auth/logout — Redirect-based logout
+  // Accepts ?redirect= URL param. Clears the server session, then redirects.
+  // Used for the Google logout flow: GET /api/auth/logout?redirect=https://...
+  // ---------------------------------------------------------------------------
+  app.get('/api/auth/logout', async (req, reply) => {
+    const redirectTo = (req.query as any).redirect;
+    if (redirectTo && typeof redirectTo === 'string' && redirectTo.startsWith('https://')) {
+      return reply.redirect(redirectTo);
+    }
+    return reply.redirect('/');
+  });
+
+  // ---------------------------------------------------------------------------
+  // POST /api/auth/expire-session — Invalidate session (sendBeacon from beforeunload)
+  // Called by the browser when the user closes the tab. Best-effort.
+  // ---------------------------------------------------------------------------
+  app.post('/api/auth/expire-session', async (req, reply) => {
+    try {
+      const { token } = req.body as { token?: string };
+      if (token) {
+        // Ask Supabase to sign out this token server-side
+        await supabase.auth.admin.signOut(token);
+      }
+    } catch {
+      // Swallow errors — this is a best-effort fire-and-forget call
+    }
+    return reply.send({ success: true });
+  });
+
+  // ---------------------------------------------------------------------------
   // POST /api/auth/kitchen/request-access — Kitchen staff requests access
   // ---------------------------------------------------------------------------
   app.post(
