@@ -135,6 +135,13 @@ export default function QRMenuPage() {
     }
   }, []);
 
+  // Poll session order statuses — keeps Request Bill button in sync with kitchen
+  useEffect(() => {
+    if (!tableData || !hasOrders || billStatus) return;
+    const interval = setInterval(() => { loadSessionOrders(); }, 5000);
+    return () => clearInterval(interval);
+  }, [tableData, hasOrders, billStatus]);
+
   // Poll bill status — reliable fallback (RLS blocks Realtime for anon users)
   const billStatusRef = useRef(billStatus);
   billStatusRef.current = billStatus;
