@@ -75,12 +75,13 @@ export function DashboardLayout({
       (window as any).google.accounts.id.disableAutoSelect();
     }
 
-    // Step 3: Redirect to Google logout.
-    // The continue param brings the user back to /?signout=1 so the landing
-    // page suppresses any automatic sign-in prompt and clears stale state.
-    const returnUrl = encodeURIComponent(window.location.origin + '/?signout=1');
-    window.location.href =
-      `https://accounts.google.com/Logout?continue=${returnUrl}`;
+    // Step 3: Sign out of Google.
+    // Google's /Logout endpoint does not support external continue= URLs
+    // (returns 400). The standard approach: redirect the full page to Google
+    // /Logout, which clears Google's auth cookies. The user then closes the
+    // Google tab and returns to our site. On return, /?signout=1 prevents
+    // auto sign-in (handled in the landing page component).
+    window.location.href = 'https://accounts.google.com/Logout';
   }
 
   // Group items by section
