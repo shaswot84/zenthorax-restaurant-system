@@ -96,6 +96,22 @@ export default function KitchenPage() {
     return () => { channel.unsubscribe(); };
   }, [restaurant, soundEnabled, loadTickets]);
 
+  // Poll staff record — updates when restaurant approves/rejects
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      const r = await apiGet<any>('/api/auth/me');
+      if (r.success) {
+        const staff = r.data.kitchenStaff;
+        setStaffRecord(staff);
+        if (staff?.isApproved && staff?.restaurantId) {
+          setRestaurant({ id: staff.restaurantId });
+        }
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Polling fallback — refresh tickets every 10s
   useEffect(() => {
     if (!restaurant) return;

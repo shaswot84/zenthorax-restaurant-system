@@ -25,6 +25,13 @@ export default function StaffPage() {
 
   useEffect(() => { if (!isLoading && !user) router.push('/login'); else if (user) load(); }, [user, isLoading]);
 
+  // Poll for new staff requests every 10s
+  useEffect(() => {
+    if (!restaurant) return;
+    const interval = setInterval(() => load(), 10000);
+    return () => clearInterval(interval);
+  }, [restaurant, load]);
+
   async function approve(reqId: string) {
     if (!restaurant) return;
     await apiPost(`/api/restaurants/${restaurant.id}/kitchen/staff-requests/${reqId}/approve`);

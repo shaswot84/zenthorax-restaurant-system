@@ -34,14 +34,11 @@ export async function authRoutes(app: FastifyInstance, di: AuthDI) {
       });
     }
 
-    // If kitchen staff, fetch their staff record
+    // Always check for kitchen staff record — any role can be kitchen staff
     let kitchenStaffRecord = null;
-    if (user!.role === 'kitchen_staff') {
-      kitchenStaffRecord = await db.query.kitchenStaff.findFirst({
-        where: (ks: any, { eq, and }: any) =>
-          and(eq(ks.userId, user!.id), eq(ks.isApproved, true)),
-      });
-    }
+    kitchenStaffRecord = await db.query.kitchenStaff.findFirst({
+      where: (ks: any, { eq }: any) => eq(ks.userId, user!.id),
+    });
 
     return reply.send({
       success: true,
