@@ -7,7 +7,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 
 interface Category { id: string; name: string; sortOrder: number; items: MenuItem[]; }
-interface MenuItem { id: string; categoryId: string; name: string; description: string | null; price: number; imageUrl: string | null; isAvailable: boolean; nutritionInfo: any; }
+interface MenuItem { id: string; categoryId: string; name: string; description: string | null; price: number; imageUrl: string | null; isAvailable: boolean; nutritionInfo: any; addons?: { id?: string; name: string; price: number }[]; }
 
 export default function MenuPage() {
   const { user, isLoading } = useAuth();
@@ -32,6 +32,7 @@ export default function MenuPage() {
   const [itemAvailable, setItemAvailable] = useState(true);
   const [itemImage, setItemImage] = useState<File | null>(null);
   const [itemImagePreview, setItemImagePreview] = useState<string | null>(null);
+  const [itemAddons, setItemAddons] = useState<{ name: string; price: number }[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
@@ -72,7 +73,7 @@ export default function MenuPage() {
     setItemName(''); setItemDesc(''); setItemPrice('');
     setItemCatId(catId || (categories[0]?.id ?? ''));
     setItemAvailable(true);
-    setItemImage(null); setItemImagePreview(null);
+    setItemImage(null); setItemImagePreview(null); setItemAddons([]);
     setShowItemForm(true);
   }
   function openEditItem(item: MenuItem) {
@@ -80,6 +81,7 @@ export default function MenuPage() {
     setItemName(item.name); setItemDesc(item.description ?? ''); setItemPrice(String(item.price));
     setItemCatId(item.categoryId); setItemAvailable(item.isAvailable);
     setItemImage(null); setItemImagePreview(item.imageUrl);
+    setItemAddons((item.addons || []).map((a: any) => ({ name: a.name, price: a.price })));
     setShowItemForm(true);
   }
   async function saveItem() {
@@ -127,6 +129,7 @@ export default function MenuPage() {
       description: itemDesc.trim() || null,
       price: parseFloat(itemPrice),
       imageUrl,
+      addons: itemAddons.filter(a => a.name.trim()),
     };
     if (editingItem) {
       await apiPatch(`/api/restaurants/${restaurant.id}/menu-items/${editingItem.id}`, body);
@@ -273,6 +276,25 @@ export default function MenuPage() {
                   </label>
                 </div>
               </div>
+              {/* Add-ons */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Add-ons / Extras</label>
+                {itemAddons.map((a, i) => (
+                  <div key={i} className="flex gap-2 mb-1.5">
+                    <input type="text" value={a.name} onChange={e => {
+                      const updated = [...itemAddons]; updated[i] = { ...updated[i]!, name: e.target.value }; setItemAddons(updated);
+                    }} placeholder="Name" className="flex-1 rounded border px-2 py-1 text-xs" />
+                    <input type="number" value={a.price || ''} onChange={e => {
+                      const updated = [...itemAddons]; updated[i] = { ...updated[i]!, price: Number(e.target.value) }; setItemAddons(updated);
+                    }} placeholder="Price" className="w-16 rounded border px-2 py-1 text-xs" min="0" />
+                    <button onClick={() => setItemAddons(itemAddons.filter((_, j) => j !== i))}
+                      className="text-red-400 hover:text-red-600 text-xs px-1">✕</button>
+                  </div>
+                ))}
+                <button onClick={() => setItemAddons([...itemAddons, { name: '', price: 0 }])}
+                  className="text-xs text-brand-500 hover:underline">+ Add add-on</button>
+              </div>
+
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={itemAvailable} onChange={e => setItemAvailable(e.target.checked)} className="accent-brand-500" />
                 In stock

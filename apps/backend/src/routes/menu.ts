@@ -4,7 +4,7 @@ import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
-import { menuCategories, menuItems } from '@zenthorax/database/schema';
+import { menuCategories, menuItems, addons } from '@zenthorax/database/schema';
 import { eq, and, asc } from 'drizzle-orm';
 
 interface MenuDI {
@@ -35,7 +35,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     const cats = await db.query.menuCategories.findMany({
       where: (c: any, { eq }: any) => eq(c.restaurantId, id),
       orderBy: [asc(menuCategories.sortOrder)],
-      with: { items: { orderBy: [asc(menuItems.name)] } },
+      with: { items: { orderBy: [asc(menuItems.name)], with: { addons: true } } },
     });
 
     return reply.send({ success: true, data: cats });
@@ -109,7 +109,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
-    const { categoryId, name, description, price, nutritionInfo, imageUrl } = req.body as any;
+    const { categoryId, name, description, price, nutritionInfo, imageUrl, addons: addonList } = req.body as any;
     if (!categoryId || !name?.trim() || price === undefined) {
       return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'categoryId, name, and price are required.' } });
     }
@@ -129,6 +129,18 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
       nutritionInfo: nutritionInfo ?? null,
     };
     await db.insert(menuItems).values(item as any);
+
+    // Create addons if provided
+    if (addonList && Array.isArray(addonList)) {
+      for (const a of addonList) {
+        if (a.name && a.price >= 0) {
+          await db.insert(addons).values({
+            id: crypto.randomUUID(), menuItemId: item.id, name: a.name, price: a.price,
+          });
+        }
+      }
+    }
+
     return reply.status(201).send({ success: true, data: item });
   });
 
@@ -144,12 +156,25 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     const updates: Record<string, any> = {};
     const allowed = ['name', 'description', 'price', 'categoryId', 'nutritionInfo', 'imageUrl'];
     for (const f of allowed) if (body[f] !== undefined) updates[f] = body[f];
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && !body.addons) {
       return reply.status(400).send({ success: false, error: { code: 'NO_CHANGES' } });
     }
-    await db.update(menuItems).set(updates).where(
-      and(eq(menuItems.id, itemId) as any, eq(menuItems.restaurantId, id) as any) as any,
-    );
+    if (Object.keys(updates).length > 0) {
+      await db.update(menuItems).set(updates).where(
+        and(eq(menuItems.id, itemId) as any, eq(menuItems.restaurantId, id) as any) as any,
+      );
+    }
+    // Replace addons if provided
+    if (body.addons && Array.isArray(body.addons)) {
+      await db.delete(addons).where(eq(addons.menuItemId, itemId) as any);
+      for (const a of body.addons) {
+        if (a.name && a.price >= 0) {
+          await db.insert(addons).values({
+            id: crypto.randomUUID(), menuItemId: itemId, name: a.name, price: a.price,
+          });
+        }
+      }
+    }
     return reply.send({ success: true, data: { id: itemId, ...updates } });
   });
 

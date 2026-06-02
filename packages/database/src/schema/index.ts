@@ -8,6 +8,7 @@ export * from './bills';
 export * from './ratings';
 export * from './kitchen';
 export * from './governance';
+export * from './addons';
 export * from './audit';
 export * from './auth';
 export * from './relations';

@@ -6,6 +6,7 @@ import { menuCategories, menuItems } from './menu';
 import { tables, tableSessions } from './tables';
 import { orders, orderItems } from './orders';
 import { bills } from './bills';
+import { addons } from './addons';
 import { ratings } from './ratings';
 import { kitchenStaff } from './kitchen';
 import { governanceProposals, governanceVotes } from './governance';
@@ -94,6 +95,7 @@ export const menuItemRelations = relations(menuItems, ({ one, many }) => ({
   }),
   orderItems: many(orderItems),
   ratings: many(ratings),
+  addons: many(addons),
 }));
 
 // --- Table relations ---

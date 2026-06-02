@@ -73,12 +73,22 @@ export async function orderRoutes(app: FastifyInstance, di: OrderDI) {
       tableId: table.id, status: 'received', notes: notes ?? null,
     } as any);
 
-    // Create order items
+    // Create order items (with addon support)
     for (const item of items) {
       const mi = menuItems.find(m => m.id === item.menuItemId)!;
+      let addonTotal = 0;
+      // Fetch addon prices if addonIds provided
+      if ((item as any).addonIds?.length > 0) {
+        const selectedAddons = await db.query.addons.findMany({
+          where: (a: any, { eq, inArray }: any) =>
+            and(eq(a.menuItemId, mi.id), inArray(a.id, (item as any).addonIds)),
+        });
+        addonTotal = selectedAddons.reduce((s: number, a: any) => s + (a.price || 0), 0);
+      }
+      const totalPrice = (mi.price + addonTotal) * item.quantity;
       await db.insert(orderItems).values({
         id: randomUUID(), orderId, menuItemId: mi.id, menuItemName: mi.name,
-        quantity: item.quantity, unitPrice: mi.price, totalPrice: mi.price * item.quantity,
+        quantity: item.quantity, unitPrice: mi.price, totalPrice,
       });
     }
 

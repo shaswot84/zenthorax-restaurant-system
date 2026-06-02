@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
-interface MenuItem { id: string; categoryId: string; name: string; description: string | null; price: number; imageUrl: string | null; isAvailable: boolean; }
+interface MenuItem { id: string; categoryId: string; name: string; description: string | null; price: number; imageUrl: string | null; isAvailable: boolean; addons?: { id: string; name: string; price: number }[]; }
 interface Category { id: string; name: string; sortOrder: number; items: MenuItem[]; }
-interface CartItem { menuItemId: string; name: string; price: number; quantity: number; }
+interface CartItem { menuItemId: string; name: string; price: number; quantity: number; addonIds?: string[]; addonTotal?: number; }
 interface TableData { restaurantId: string; restaurantName: string; tableId: string; tableNumber: string; sessionToken: string; }
 
 export default function QRMenuPage() {
@@ -25,6 +25,8 @@ export default function QRMenuPage() {
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [sessionOrders, setSessionOrders] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
   async function loadSessionOrders() {
@@ -67,11 +69,22 @@ export default function QRMenuPage() {
   const pendingOrders = sessionOrders.filter((o: any) => o.status !== 'ready' && o.status !== 'cancelled').length;
 
   function addToCart(item: MenuItem) {
+    // If item has addons, show detail modal first
+    if (item.addons?.length) {
+      setSelectedItem(item); setSelectedAddons([]); return;
+    }
+    addToCartDirect(item, []);
+  }
+
+  function addToCartDirect(item: MenuItem, addonIds: string[]) {
+    const addonTotal = (item.addons || []).filter(a => addonIds.includes(a.id)).reduce((s, a) => s + a.price, 0);
+    const totalPrice = item.price + addonTotal;
     setCart(prev => {
       const ex = prev.find(i => i.menuItemId === item.id);
-      if (ex) return prev.map(i => i.menuItemId === item.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { menuItemId: item.id, name: item.name, price: item.price, quantity: 1 }];
+      if (ex) return prev.map(i => i.menuItemId === item.id ? { ...i, quantity: i.quantity + 1, addonIds, addonTotal } : i);
+      return [...prev, { menuItemId: item.id, name: item.name, price: totalPrice, quantity: 1, addonIds, addonTotal }];
     });
+    setSelectedItem(null); setSelectedAddons([]);
   }
 
   function updateQty(id: string, qty: number) {
@@ -85,7 +98,7 @@ export default function QRMenuPage() {
     try {
       const res = await fetch(`${API}/api/orders`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionToken: tableData.sessionToken, items: cart.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity })) }),
+        body: JSON.stringify({ sessionToken: tableData.sessionToken, items: cart.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, addonIds: i.addonIds || [] })) }),
       });
       const json = await res.json();
       if (json.success) {
@@ -303,6 +316,49 @@ export default function QRMenuPage() {
             <button onClick={placeOrder} disabled={placingOrder || cart.length === 0}
               className="w-full rounded-lg bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600 disabled:opacity-50">
               {placingOrder ? 'Placing Order...' : `Confirm Order — NRS ${cartTotal}`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Item detail modal with addons */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setSelectedItem(null)}>
+          <div className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-white p-5 shadow-xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              {selectedItem.imageUrl && <img src={selectedItem.imageUrl} alt={selectedItem.name} className="h-20 w-20 rounded-lg object-cover" />}
+              <div className="flex-1">
+                <h3 className="text-lg font-bold">{selectedItem.name}</h3>
+                {selectedItem.description && <p className="text-xs text-muted-foreground mt-1">{selectedItem.description}</p>}
+                <p className="text-sm font-bold text-brand-600 mt-1">NRS {selectedItem.price}</p>
+              </div>
+            </div>
+
+            {/* Addons */}
+            {selectedItem.addons && selectedItem.addons.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold mb-2">Add-ons / Extras</p>
+                <div className="space-y-2">
+                  {selectedItem.addons.map(a => (
+                    <label key={a.id} className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${
+                      selectedAddons.includes(a.id) ? 'border-brand-500 bg-brand-50' : 'border-gray-200'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={selectedAddons.includes(a.id)}
+                          onChange={() => setSelectedAddons(prev => prev.includes(a.id) ? prev.filter(x => x !== a.id) : [...prev, a.id])}
+                          className="accent-brand-500" />
+                        <span className="text-sm">{a.name}</span>
+                      </div>
+                      <span className="text-xs font-medium text-brand-600">+ NRS {a.price}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={() => addToCartDirect(selectedItem, selectedAddons)}
+              className="mt-4 w-full rounded-lg bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600">
+              Add to Cart — NRS {selectedItem.price + (selectedItem.addons || []).filter(a => selectedAddons.includes(a.id)).reduce((s, a) => s + a.price, 0)}
             </button>
           </div>
         </div>
