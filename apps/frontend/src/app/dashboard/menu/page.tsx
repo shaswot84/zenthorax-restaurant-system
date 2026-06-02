@@ -50,7 +50,7 @@ export default function MenuPage() {
 
   // --- Category actions ---
   async function saveCategory() {
-    if (!catName.trim() || !restaurant) return;
+    if (!catName.trim() || catName.trim().length < 2 || !restaurant) return;
     if (editingCat) {
       await apiPatch(`/api/restaurants/${restaurant.id}/categories/${editingCat}`, { name: catName.trim() });
     } else {

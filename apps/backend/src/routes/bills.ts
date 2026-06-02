@@ -33,8 +33,15 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
   // ---------------------------------------------------------------------------
   app.post('/api/bills/request', async (req, reply) => {
     const { sessionToken, customerName, customerPhone } = req.body as { sessionToken?: string; customerName?: string; customerPhone?: string };
-    if (!sessionToken || !customerName?.trim()) {
-      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'sessionToken and customerName are required.' } });
+    if (!sessionToken || !customerName?.trim() || customerName.trim().length < 2) {
+      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'Customer name is required (min 2 characters).' } });
+    }
+    // Validate phone if provided
+    if (customerPhone?.trim()) {
+      const cleaned = customerPhone.trim().replace(/[\s\-()]/g, '');
+      if (!/^\d{10}$/.test(cleaned)) {
+        return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'Phone number must be exactly 10 digits.' } });
+      }
     }
 
     const session = await db.query.tableSessions.findFirst({

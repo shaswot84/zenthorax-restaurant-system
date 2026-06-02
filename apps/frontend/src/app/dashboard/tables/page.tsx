@@ -32,6 +32,7 @@ export default function TablesPage() {
 
   async function addTable() {
     if (!restaurant || !tableNumber.trim()) return;
+    if (tableNumber.trim().length < 1) return;
     setSaving(true);
     await apiPost(`/api/restaurants/${restaurant.id}/tables`, { tableNumber: tableNumber.trim() });
     setTableNumber(''); setShowForm(false); setSaving(false);

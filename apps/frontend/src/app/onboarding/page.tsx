@@ -108,13 +108,15 @@ export default function OnboardingPage() {
   }
 
   function canProceedStep2() {
+    // Validate phone: 10 digits
+    const phoneValid = /^\d{10}$/.test(contactNumber.replace(/[\s\-()]/g, ''));
     return (
-      name.length >= 3 &&
+      name.trim().length >= 3 &&
       slug.length >= 3 &&
       !slugError &&
       !slugChecking &&
-      contactNumber.length >= 7 &&
-      address.length >= 5
+      phoneValid &&
+      address.trim().length >= 5
     );
   }
 
@@ -263,7 +265,7 @@ export default function OnboardingPage() {
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value)}
                   className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-                  placeholder="+977 98XXXXXXXX"
+                  placeholder="9812345678 (10 digits)"
                 />
               </div>
               <div>

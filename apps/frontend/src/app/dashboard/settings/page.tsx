@@ -50,6 +50,9 @@ export default function SettingsPage() {
 
   async function handleSave() {
     if (!restaurant) return;
+    // Validate
+    if (!name.trim() || name.trim().length < 3) { setMessage('Restaurant name must be at least 3 characters.'); return; }
+    if (!address.trim() || address.trim().length < 5) { setMessage('Address must be at least 5 characters.'); return; }
     setSaving(true);
     setMessage('');
 

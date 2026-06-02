@@ -24,6 +24,8 @@ export default function QRMenuPage() {
   const [requestingBill, setRequestingBill] = useState(false);
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
+  const [custNameErr, setCustNameErr] = useState('');
+  const [custPhoneErr, setCustPhoneErr] = useState('');
   const [sessionOrders, setSessionOrders] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
@@ -110,7 +112,16 @@ export default function QRMenuPage() {
   }
 
   async function requestBill() {
-    if (!tableData || !custName.trim()) return;
+    // Validate
+    let valid = true;
+    if (!custName.trim() || custName.trim().length < 2) { setCustNameErr('Name is required (min 2 chars)'); valid = false; }
+    else setCustNameErr('');
+    if (custPhone.trim()) {
+      const cleaned = custPhone.trim().replace(/[\s\-()]/g, '');
+      if (!/^\d{10}$/.test(cleaned)) { setCustPhoneErr('Phone must be exactly 10 digits'); valid = false; }
+      else setCustPhoneErr('');
+    } else setCustPhoneErr('');
+    if (!valid || !tableData) return;
     setRequestingBill(true);
     try {
       const res = await fetch(`${API}/api/bills/request`, {
@@ -385,10 +396,16 @@ export default function QRMenuPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <input type="text" value={custName} onChange={e => setCustName(e.target.value)}
-                placeholder="Your name * (required)" className="w-full rounded-lg border px-3 py-2 text-sm" />
-              <input type="text" value={custPhone} onChange={e => setCustPhone(e.target.value)}
-                placeholder="Phone number (optional)" className="w-full rounded-lg border px-3 py-2 text-sm" />
+              <div>
+                <input type="text" value={custName} onChange={e => { setCustName(e.target.value); setCustNameErr(''); }}
+                  placeholder="Your name * (required)" className="w-full rounded-lg border px-3 py-2 text-sm" />
+                {custNameErr && <p className="text-xs text-red-500 mt-1">{custNameErr}</p>}
+              </div>
+              <div>
+                <input type="text" value={custPhone} onChange={e => { setCustPhone(e.target.value); setCustPhoneErr(''); }}
+                  placeholder="Phone number — 10 digits (optional)" className="w-full rounded-lg border px-3 py-2 text-sm" />
+                {custPhoneErr && <p className="text-xs text-red-500 mt-1">{custPhoneErr}</p>}
+              </div>
             </div>
           </div>
           <div className="border-t p-4">
