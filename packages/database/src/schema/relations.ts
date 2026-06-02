@@ -95,7 +95,15 @@ export const menuItemRelations = relations(menuItems, ({ one, many }) => ({
   }),
   orderItems: many(orderItems),
   ratings: many(ratings),
-  addons: many(addons),
+  addons: many(addons, { relationName: 'menuItemAddons' }),
+}));
+
+export const addonRelations = relations(addons, ({ one }) => ({
+  menuItem: one(menuItems, {
+    fields: [addons.menuItemId],
+    references: [menuItems.id],
+    relationName: 'menuItemAddons',
+  }),
 }));
 
 // --- Table relations ---
