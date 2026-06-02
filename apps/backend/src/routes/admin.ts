@@ -3,7 +3,7 @@ import type { Database } from '@zenthorax/database';
 import type { Env } from '../config/env';
 import { createAuthMiddleware } from '../middleware/auth';
 import { superAdminOnly } from '../middleware/rbac';
-import { restaurants, subscriptions, subscriptionPackages } from '@zenthorax/database/schema';
+import { restaurants, subscriptions, subscriptionPackages, payments } from '@zenthorax/database/schema';
 import { eq, ilike, or, sql, desc, and } from 'drizzle-orm';
 
 interface AdminDI {
@@ -206,6 +206,32 @@ export async function adminRoutes(app: FastifyInstance, di: AdminDI) {
     }).where(eq(subscriptions.id, id) as any);
 
     return reply.send({ success: true, data: { status: 'rejected' } });
+  });
+
+  // ---------------------------------------------------------------------------
+  // DELETE /api/admin/restaurants/:id/hard-delete — Permanently delete restaurant
+  // ---------------------------------------------------------------------------
+  app.delete('/api/admin/restaurants/:id/hard-delete', { preHandler: adminPreHandler }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+
+    const restaurant = await db.query.restaurants.findFirst({ where: (r: any, { eq }: any) => eq(r.id, id) });
+    if (!restaurant) return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND' } });
+
+    try {
+      // Delete in order to satisfy FK constraints:
+      // 1. payments (FK to subscriptions)
+      await db.delete(payments).where(eq(payments.restaurantId, id) as any);
+      // 2. subscriptions (FK to restaurant — would cascade, but explicit is safer)
+      await db.delete(subscriptions).where(eq(subscriptions.restaurantId, id) as any);
+      // 3. restaurant (CASCADE handles: menu_items, menu_categories, addons,
+      //    orders, order_items, bills, tables, table_sessions, ratings,
+      //    kitchen_staff. Audit logs → SET NULL)
+      await db.delete(restaurants).where(eq(restaurants.id, id) as any);
+
+      return reply.send({ success: true, data: { message: `Restaurant "${restaurant.name}" permanently deleted.` } });
+    } catch (err: any) {
+      return reply.status(500).send({ success: false, error: { code: 'DELETE_FAILED', message: err.message } });
+    }
   });
 
   // ---------------------------------------------------------------------------

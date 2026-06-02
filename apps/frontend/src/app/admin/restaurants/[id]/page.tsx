@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-provider';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { apiGet, apiPost } from '@/lib/api';
+import { apiGet, apiPost, apiDelete } from '@/lib/api';
 
 export default function AdminRestaurantDetailPage() {
   const { user, isLoading } = useAuth();
@@ -36,6 +36,11 @@ export default function AdminRestaurantDetailPage() {
       await apiPost(`/api/admin/restaurants/${params.id}/suspend`);
     } else if (action === 'reactivate') {
       await apiPost(`/api/admin/restaurants/${params.id}/reactivate`);
+    } else if (action === 'hardDelete') {
+      if (!confirm('PERMANENTLY DELETE this restaurant and ALL associated data?\n\nThis includes: menu items, orders, bills, tables, QR codes, kitchen staff, subscriptions, and payments.\n\nThis action is IRREVERSIBLE.')) return;
+      const res = await apiDelete<any>(`/api/admin/restaurants/${params.id}/hard-delete`);
+      if (res.success) { alert(res.data?.message || 'Restaurant deleted.'); router.push('/admin/restaurants'); return; }
+      else alert('Failed: ' + (res.error?.message || 'Unknown error'));
     }
     setActionLoading('');
     loadRestaurant();
@@ -136,6 +141,10 @@ export default function AdminRestaurantDetailPage() {
               Reactivate Restaurant
             </button>
           )}
+          <button onClick={() => handleAction('hardDelete')} disabled={!!actionLoading}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+            ⚠️ Hard Delete
+          </button>
         </div>
       </div>
     </DashboardLayout>
