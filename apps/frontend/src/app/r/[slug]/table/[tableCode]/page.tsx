@@ -194,11 +194,25 @@ export default function QRMenuPage() {
         </div>
       </header>
 
-      <div className="sticky top-[57px] z-10 border-b bg-white px-2 py-2 overflow-x-auto">
-        <div className="flex gap-1.5 whitespace-nowrap">
-          <button onClick={() => setActiveCat('all')} className={`rounded-full px-3 py-1.5 text-xs font-medium ${activeCat === 'all' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600'}`}>All</button>
+      <div className="sticky top-[57px] z-10 border-b bg-white py-2 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-2 px-3 whitespace-nowrap">
+          <button onClick={() => setActiveCat('all')}
+            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              activeCat === 'all'
+                ? 'bg-brand-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+            }`}>
+            All
+          </button>
           {categories.map(c => (
-            <button key={c.id} onClick={() => setActiveCat(c.id)} className={`rounded-full px-3 py-1.5 text-xs font-medium ${activeCat === c.id ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600'}`}>{c.name}</button>
+            <button key={c.id} onClick={() => setActiveCat(c.id)}
+              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                activeCat === c.id
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+              }`}>
+              {c.name}
+            </button>
           ))}
         </div>
       </div>
