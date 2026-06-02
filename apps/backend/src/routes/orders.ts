@@ -3,6 +3,7 @@ import type { Database } from '@zenthorax/database';
 import type { Env } from '../config/env';
 import { orders, orderItems, tableSessions } from '@zenthorax/database/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { requireActiveRestaurant } from '../utils/response';
 import { randomUUID } from 'crypto';
 
 interface OrderDI {
@@ -45,6 +46,9 @@ export async function orderRoutes(app: FastifyInstance, di: OrderDI) {
     if (!table?.isActive) {
       return reply.status(400).send({ success: false, error: { code: 'TABLE_INACTIVE' } });
     }
+
+    // Verify restaurant is active (approved)
+    if (!(await requireActiveRestaurant(reply, db, table.restaurantId))) return;
 
     // Validate all items exist and are available
     const itemIds = items.map(i => i.menuItemId);

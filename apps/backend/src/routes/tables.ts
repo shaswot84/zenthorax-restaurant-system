@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
 import { tables, tableSessions } from '@zenthorax/database/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { requireActiveRestaurant } from '../utils/response';
 import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 import { randomUUID } from 'crypto';
@@ -94,6 +95,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
 
     const results = await db.query.tables.findMany({
       where: (t: any, { eq }: any) => eq(t.restaurantId, id),
@@ -112,6 +114,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
 
     const { tableNumber } = req.body as { tableNumber: string };
     if (!tableNumber?.trim()) {
@@ -164,6 +167,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { tableNumber } = req.body as { tableNumber?: string };
     if (!tableNumber?.trim()) {
       return reply.status(400).send({ success: false, error: { code: 'VALIDATION' } });
@@ -182,6 +186,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     // Close active sessions
     await db.update(tableSessions).set({ isActive: false, closedAt: new Date() }).where(
       and(eq(tableSessions.tableId, tableId) as any, eq(tableSessions.isActive, true) as any) as any,
@@ -201,6 +206,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     await db.update(tables).set({ isActive: true }).where(
       and(eq(tables.id, tableId) as any, eq(tables.restaurantId, id) as any) as any,
     );
@@ -216,6 +222,7 @@ export async function tableRoutes(app: FastifyInstance, di: TableDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     // Close all active sessions for this table
     await db.update(tableSessions).set({ isActive: false, closedAt: new Date() }).where(
       and(eq(tableSessions.tableId, tableId) as any, eq(tableSessions.isActive, true) as any) as any,

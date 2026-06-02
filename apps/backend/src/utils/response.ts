@@ -85,3 +85,28 @@ export async function validateRestaurantAccess(
   sendError(reply, 403, 'FORBIDDEN', 'You do not have access to this restaurant');
   return false;
 }
+
+/**
+ * Check if a restaurant is active (approved). Returns 403 if pending/inactive.
+ * Call this in every endpoint that modifies or serves restaurant data.
+ */
+export async function requireActiveRestaurant(
+  reply: FastifyReply,
+  db: any,
+  restaurantId: string,
+): Promise<boolean> {
+  const restaurant = await db.query.restaurants.findFirst({
+    where: (r: any, { eq }: any) => eq(r.id, restaurantId),
+    columns: { status: true, name: true },
+  });
+  if (!restaurant) {
+    sendError(reply, 404, 'NOT_FOUND', 'Restaurant not found');
+    return false;
+  }
+  if (restaurant.status !== 'active') {
+    sendError(reply, 403, 'RESTAURANT_NOT_ACTIVE',
+      `Restaurant "${restaurant.name}" is not yet approved. Status: ${restaurant.status}. Please wait for super admin approval.`);
+    return false;
+  }
+  return true;
+}

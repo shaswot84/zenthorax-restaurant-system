@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
 import { menuCategories, menuItems, addons } from '@zenthorax/database/schema';
 import { eq, and, asc } from 'drizzle-orm';
+import { requireActiveRestaurant } from '../utils/response';
 
 interface MenuDI {
   db: Database;
@@ -49,6 +50,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: 'Not your restaurant.' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { name } = req.body as { name: string };
     if (!name?.trim()) {
       return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'Name is required.' } });
@@ -74,6 +76,7 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: 'Not your restaurant.' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { name, sortOrder } = req.body as { name?: string; sortOrder?: number };
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name.trim();

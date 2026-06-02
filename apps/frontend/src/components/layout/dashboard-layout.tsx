@@ -50,6 +50,22 @@ export function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
+  // Unapproved restaurant check: redirect to dashboard if pending approval
+  useEffect(() => {
+    if (variant !== 'restaurant' || !user) return;
+    if (pathname === '/dashboard' || pathname === '/dashboard/settings' || pathname === '/onboarding') return;
+    const checkStatus = async () => {
+      try {
+        const { apiGet } = await import('@/lib/api');
+        const res = await apiGet<any>('/api/restaurants/mine');
+        if (res.success && res.data && res.data.status !== 'active') {
+          router.push('/dashboard');
+        }
+      } catch {}
+    };
+    checkStatus();
+  }, [variant, user, pathname]);
+
   // Super admin passkey check (skip on verify and security pages)
   useEffect(() => {
     if (variant !== 'admin' || !user || role !== 'super_admin') return;

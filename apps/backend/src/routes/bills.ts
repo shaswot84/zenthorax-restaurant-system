@@ -5,6 +5,7 @@ import { createAuthMiddleware } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
 import { bills, orders, orderItems, tableSessions } from '@zenthorax/database/schema';
+import { requireActiveRestaurant } from '../utils/response';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
@@ -103,6 +104,7 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { status: st } = req.query as { status?: string };
     let where: any = eq(bills.restaurantId, id);
     if (st) where = and(where as any, eq(bills.status, st as any) as any);
@@ -124,6 +126,7 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const bill = await db.query.bills.findFirst({
       where: (b: any, { eq, and }: any) => and(eq(b.id, billId), eq(b.restaurantId, id)),
       with: { table: { columns: { tableNumber: true } } },
@@ -147,6 +150,7 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { discount, vat, serviceCharge, tax } = req.body as any;
     const bill = await db.query.bills.findFirst({ where: (b: any, { eq, and }: any) => and(eq(b.id, billId), eq(b.restaurantId, id)) });
     if (!bill) return reply.status(404).send({ success: false, error: { code: 'NOT_FOUND' } });
@@ -172,6 +176,7 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { paymentMedium } = req.body as { paymentMedium?: string };
 
     await db.update(bills).set({
@@ -195,6 +200,7 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     await db.update(bills).set({ status: 'unpaid' as any }).where(
       and(eq(bills.id, billId) as any, eq(bills.restaurantId, id) as any) as any,
     );
@@ -209,6 +215,7 @@ export async function billRoutes(app: FastifyInstance, di: BillDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
+    if (!(await requireActiveRestaurant(reply, db, id))) return;
     const { reason } = req.body as { reason?: string };
     await db.update(bills).set({ status: 'cancelled', cancellationReason: reason ?? null } as any).where(
       and(eq(bills.id, billId) as any, eq(bills.restaurantId, id) as any) as any,
