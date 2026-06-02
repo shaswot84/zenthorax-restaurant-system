@@ -86,6 +86,24 @@ export async function validateRestaurantAccess(
   return false;
 }
 
+import type { ZodSchema } from 'zod';
+
+/**
+ * Validate request body against a Zod schema. Returns 400 with field errors if invalid.
+ */
+export function validateBody<T>(schema: ZodSchema<T>, body: unknown, reply: FastifyReply): T | null {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const fieldErrors = result.error.issues.map(i => ({
+      field: i.path.join('.'),
+      message: i.message,
+    }));
+    reply.status(400).send({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: { fields: fieldErrors } } });
+    return null;
+  }
+  return result.data;
+}
+
 /**
  * Check if a restaurant is active (approved). Returns 403 if pending/inactive.
  * Call this in every endpoint that modifies or serves restaurant data.

@@ -6,7 +6,8 @@ import { requireRole } from '../middleware/rbac';
 import { ROLES } from '@zenthorax/shared';
 import { menuCategories, menuItems, addons } from '@zenthorax/database/schema';
 import { eq, and, asc } from 'drizzle-orm';
-import { requireActiveRestaurant } from '../utils/response';
+import { requireActiveRestaurant, validateBody } from '../utils/response';
+import { menuCategorySchema, menuItemSchema } from '@zenthorax/shared';
 
 interface MenuDI {
   db: Database;
@@ -51,10 +52,9 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN', message: 'Not your restaurant.' } });
     }
     if (!(await requireActiveRestaurant(reply, db, id))) return;
-    const { name } = req.body as { name: string };
-    if (!name?.trim()) {
-      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'Name is required.' } });
-    }
+    const parsed = validateBody(menuCategorySchema, req.body, reply);
+    if (!parsed) return;
+    const { name } = parsed;
 
     const maxSort = await db.query.menuCategories.findMany({
       where: (c: any, { eq }: any) => eq(c.restaurantId, id),
@@ -112,13 +112,9 @@ export async function menuRoutes(app: FastifyInstance, di: MenuDI) {
     if (!(await verifyOwnership(id, req.user!.id))) {
       return reply.status(403).send({ success: false, error: { code: 'FORBIDDEN' } });
     }
-    const { categoryId, name, description, price, nutritionInfo, imageUrl, addons: addonList } = req.body as any;
-    if (!categoryId || !name?.trim() || price === undefined) {
-      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'categoryId, name, and price are required.' } });
-    }
-    if (typeof price !== 'number' || price < 0) {
-      return reply.status(400).send({ success: false, error: { code: 'VALIDATION', message: 'Price must be a positive number.' } });
-    }
+    const parsed = validateBody(menuItemSchema, req.body, reply);
+    if (!parsed) return;
+    const { categoryId, name, description, price, nutritionInfo, imageUrl, addons: addonList } = parsed;
 
     const item = {
       id: crypto.randomUUID(),

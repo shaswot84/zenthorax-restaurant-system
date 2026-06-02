@@ -34,6 +34,7 @@ export default function MenuPage() {
   const [itemImagePreview, setItemImagePreview] = useState<string | null>(null);
   const [itemAddons, setItemAddons] = useState<{ name: string; price: number }[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     const r = await apiGet<any>('/api/restaurants/mine');
@@ -85,8 +86,22 @@ export default function MenuPage() {
     setShowItemForm(true);
   }
   async function saveItem() {
-    if (!restaurant || !itemCatId || !itemName.trim() || !itemPrice) return;
-    setUploading(true);
+    if (!restaurant) return;
+    // Frontend validation
+    const errors: Record<string, string> = {};
+    if (!itemName.trim()) errors['name'] = 'Item name is required';
+    else if (itemName.trim().length < 2) errors['name'] = 'Name must be at least 2 characters';
+    if (!itemCatId) errors['category'] = 'Category is required';
+    const priceNum = parseFloat(itemPrice);
+    if (isNaN(priceNum) || priceNum <= 0) errors['price'] = 'Price must be greater than 0';
+    for (let i = 0; i < itemAddons.length; i++) {
+      if (!itemAddons[i]!.name.trim()) errors[`addon_${i}_name`] = 'Add-on name required';
+      if (itemAddons[i]!.price < 0) errors[`addon_${i}_price`] = 'Invalid price';
+    }
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setUploading(true); setFormErrors({});
 
     let imageUrl = editingItem?.imageUrl ?? null;
     if (itemImage) {
